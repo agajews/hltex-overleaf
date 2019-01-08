@@ -1,13 +1,3 @@
-// chrome.runtime.sendNativeMessage('com.hltex.overleaf',
-//     { text: "Hello" },
-//     function(response) {
-//         console.log("Received " + response);
-//     });
-
-// chrome.runtime.sendMessage({greeting: "hello"}, function(response) {
-//     console.log(response);
-// });
-
 // var toparse = document.createElement("meta");
 // toparse.id = "toparse";
 // toparse.style = { visibility: 'hidden', height: '0px' };
@@ -17,9 +7,10 @@ document.addEventListener('readytoparse', function(e) {
     e.preventDefault();
     console.log('Received readytoparse');
     console.log(e.detail);
-    // tocompile = toparse.textContent;
-    // console.log(tocompile);
-    // toparse.textContent = '';
+
+    chrome.runtime.sendMessage({ text: e.detail }, function(response) {
+        console.log(response);
+    });
 
     // toparse.textContent = tocompile;
     e = new CustomEvent('readytocompile', { detail: e.detail });
