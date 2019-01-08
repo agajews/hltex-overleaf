@@ -33,6 +33,7 @@ interval = setInterval(function() {
                         name: name,
                         // id: docs[i].doc.id,
                         path: docs[i].path,
+                        current: docs[i].doc.id == window._ide.$scope.editor.open_doc_id,
                     });
                 } else if (name.endsWith('.tex')) {
                     tex_docs.push({
@@ -48,9 +49,9 @@ interval = setInterval(function() {
             // why doesn't javascript have hashmaps
             for (var i = 0; i < hltex_docs.length; i++) {
                 var hltex_path = hltex_docs[i].path;
-                // console.log('Hltex path: ', hltex_path);
+                console.log('Hltex path: ', hltex_path);
                 var tex_path = hltex_path.slice(0, -6) + '.tex';
-                // console.log('Tex path: ', tex_path);
+                console.log('Tex path: ', tex_path);
                 for (var j = 0; j < tex_docs.length; j++) {
                     // console.log('Examining tex doc:', tex_docs[j]);
                     if (tex_docs[j].path == tex_path) {
@@ -82,6 +83,28 @@ interval = setInterval(function() {
                     console.log(res);
                     hltex_docs[i].tex_id = res.data._id;
                     // await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+
+                console.log('Current:', hltex_docs[i]);
+                if (hltex_docs[i].current) {
+                    var tex_id = hltex_docs[i].tex_id;
+                    window._ide.editorManager.getCurrentDocId = function() {
+                        if (window.recompiling) {
+                            console.log('Returning', tex_id);
+                            return tex_id;
+                        } else {
+                            return window._ide.$scope.editor.open_doc_id;
+                        }
+                    }
+
+                    window._ide.editorManager.getCurrentDocValue = function() {
+                        if (window.recompiling) {
+                            return "\\documentclass";
+                        } else {
+                            var ref;
+                            return (ref = this.$scope.editor.sharejs_doc) != null ? ref.getSnapshot() : void 0;
+                        }
+                    }
                 }
             }
 
