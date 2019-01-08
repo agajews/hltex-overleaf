@@ -10,11 +10,9 @@ document.addEventListener('readytoparse', function(e) {
 
     chrome.runtime.sendMessage({ text: e.detail }, function(response) {
         console.log(response);
+        e = new CustomEvent('readytocompile', { detail: response.text });
+        document.dispatchEvent(e);
     });
-
-    // toparse.textContent = tocompile;
-    e = new CustomEvent('readytocompile', { detail: e.detail });
-    document.dispatchEvent(e);
 })
 
 function injectScript(file, node) {

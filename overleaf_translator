@@ -1,37 +1,33 @@
 #!/usr/bin/env python3
 
+from hltex.translator import Translator
+import struct
 import sys
 import json
-import struct
 
-# Read a message from stdin and decode it.
-def getMessage():
-    rawLength = sys.stdin.buffer.read(4)
-    if len(rawLength) == 0:
-        sys.exit(0)
-    messageLength = struct.unpack('@I', rawLength)[0]
-    message = sys.stdin.buffer.read(messageLength).decode('utf-8')
-    return json.loads(message)
 
-# Encode a message for transmission,
-# given its content.
-def encodeMessage(messageContent):
-    encodedContent = json.dumps(messageContent).encode('utf-8')
-    encodedLength = struct.pack('@I', len(encodedContent))
-    return {'length': encodedLength, 'content': encodedContent}
+while 1:
+    #The first four bytes from the app state the rest of the message's length.
+    text_length_bytes = sys.stdin.buffer.read(4)
+    # sys.stderr.write(str(type(text_length_bytes)))
 
-# Send an encoded message to stdout
-def sendMessage(encodedMessage):
-    sys.stdout.buffer.write(encodedMessage['length'])
-    sys.stdout.buffer.write(encodedMessage['content'])
-    sys.stdout.buffer.flush()
+    #Unpack the exact length of the message from the app, and read the message.
+    text_length = struct.unpack('i', text_length_bytes)[0]
 
-# with open('/Users/alexgajewski/Documents/hltex_chrome/test.msg', 'w') as f:
-#     f.write('running\n')
+    document = sys.stdin.buffer.read(text_length)
+    document = json.loads(document.decode('utf-8'))['text']
+    translator = Translator(document)
+    res = translator.translate()
 
-sendMessage(encodeMessage("first message"))
+    sys.stderr.write(document + '\n')
 
-while True:
-    sendMessage(encodeMessage("pong"))
-    receivedMessage = getMessage()
-    sendMessage(encodeMessage("pong"))
+    #The text to send back to the app.
+    text = json.dumps({'text': res})
+
+    #Tell the app how long your message is.
+    sys.stdout.buffer.write(struct.pack('I', len(text)))
+
+    #Send the message.
+    sys.stdout.write(text)
+    sys.stdout.flush()
+

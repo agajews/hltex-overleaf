@@ -44,25 +44,37 @@ chrome.webRequest.onHeadersReceived.addListener(details => {
 //   ["blocking"]);
 
 
-chrome.runtime.sendNativeMessage('com.hltex.overleaf',
-    { text: "Hello" },
-    function(response) {
-        console.log('Last error: ', chrome.runtime.lastError);
-        console.log('Response from translator: ', response);
-    });
+// chrome.runtime.sendNativeMessage('com.hltex.overleaf',
+//     { text: "Hello" },
+//     function(response) {
+//         console.log('Last error: ', chrome.runtime.lastError);
+//         console.log('Response from translator: ', response);
+//     });
 
-// var port = chrome.runtime.connectNative("com.hltex.overleaf");
-// console.log('Last error after opening: ', chrome.runtime.lastError);
-// port.postMessage("ping");
-// console.log('Last error after ping: ', chrome.runtime.lastError);
+// var port = chrome.runtime.connectNative("com.google.chrome.example.echo");
+// port.postMessage({text: "hello"});
+// // console.log('Last error after ping: ', chrome.runtime.lastError);
 
 // port.onMessage.addListener((response) => {
 //     console.log("Received: " + response);
 // });
 
+// port.onDisconnect.addListener(function() {
+//     console.log("Disconnected");
+// });
+
 chrome.runtime.onMessage.addListener(
     function(request, sender, sendResponse) {
         console.log('Received request ', request)
+        // port.postMessage({text: "hello"});
+        // console.log('Sending hello');
+        chrome.runtime.sendNativeMessage('com.hltex.overleaf',
+            request,
+            function(response) {
+                console.log('Last error: ', chrome.runtime.lastError);
+                console.log('Response from echo: ', response);
+                sendResponse(response);
+            });
         // port.postMessage("ping");
         // chrome.runtime.sendNativeMessage('com.hltex.overleaf',
         //     { text: "Hello" },
@@ -71,4 +83,5 @@ chrome.runtime.onMessage.addListener(
         //         console.log('Response from translator: ', response);
         //         sendResponse({ response: response });
         //     });
+        return true;
     });
