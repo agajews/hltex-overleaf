@@ -1,11 +1,18 @@
- {
+{
     "name": "HLTeX Overleaf",
     "version": "0.1.6",
     "description": "Overleaf Integration!",
     "permissions": ["storage", "webRequest", "webRequestBlocking", "*://raw.githubusercontent.com/", "*://cdn.sharelatex.com/", "*://*.overleaf.com/"],
     "background": {
-      "scripts": ["background.js"],
-      "persistent": true
+        "scripts": ["background.js"],
+        "persistent": true
     },
+    "content_scripts": [
+        {
+            "matches": ["*://*.overleaf.com/project/*"],
+            "js": ["load_overleaf.js"]
+        }
+    ],
+    "web_accessible_resources" : ["overleaf.js"],
     "manifest_version": 2
 }
