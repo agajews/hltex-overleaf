@@ -42,3 +42,11 @@ chrome.webRequest.onHeadersReceived.addListener(details => {
 //   function(details) { return {cancel: true}; },
 //   {urls: ["*://www.evil.com/*"]},
 //   ["blocking"]);
+//
+
+// chrome.runtime.onMessage.addListener(
+//     function(request, sender, sendResponse) {
+//         console.log('Received request ', request)
+//         if (request.greeting == "hello")
+//           sendResponse({farewell: "goodbye"});
+//     });
