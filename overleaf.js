@@ -1,8 +1,14 @@
 console.log('hello from overleaf!');
 
+function endRecompile() {
+    window.recompiling = false;
+    document.getElementsByClassName('btn-recompile')[0].children[1].innerHTML = "Recompile";
+    document.getElementsByClassName('btn-recompile')[0].children[0].classList.remove('fa-spin');
+    document.getElementsByClassName('btn-recompile')[0].removeAttribute('disabled');
+}
+
 interval = setInterval(function() {
     if (window._ide) {
-        var texid = "5c32d60c21c0266007c09bbd"
         var idecopy = jQuery.extend(true, {}, _ide)
         var newcm = new window._ide.connectionManager.constructor(idecopy, idecopy.$scope)
 
@@ -15,6 +21,9 @@ interval = setInterval(function() {
                 return;
             }
             window.recompiling = true;
+            document.getElementsByClassName('btn-recompile')[0].children[1].innerHTML = "Compiling...";
+            document.getElementsByClassName('btn-recompile')[0].children[0].classList.add('fa-spin');
+            document.getElementsByClassName('btn-recompile')[0].setAttribute('disabled', 'disabled');
             console.log('recompiling!');
 
             var docs = window._ide.$scope.docs;
@@ -71,7 +80,7 @@ interval = setInterval(function() {
                             }
                         }
                         console.log('Failed to create tex doc at', hltex_path);
-                        window.recompiling = false;
+                        endRecompile();
                         return;
                     }
 
@@ -135,7 +144,7 @@ interval = setInterval(function() {
 
             oldRecompile({});
             setTimeout(function() {
-                window.recompiling = false;
+                endRecompile();
             }, 1000);
 
         });
@@ -147,6 +156,8 @@ interval = setInterval(function() {
             e.preventDefault();
             window._ide.$scope.recompile()
         });
+        // new_element.classList.add('btn-recompile');
+        new_element.id = 'recompilebutton';
 
         clearInterval(interval);
     }
