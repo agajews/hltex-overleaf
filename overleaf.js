@@ -30,6 +30,7 @@ interval = setInterval(function() {
                     });
                     hltex_docs.push({
                         text: docLines.join('\n'),
+                        name: name,
                         // id: docs[i].doc.id,
                         path: docs[i].path,
                     });
@@ -47,17 +48,40 @@ interval = setInterval(function() {
             // why doesn't javascript have hashmaps
             for (var i = 0; i < hltex_docs.length; i++) {
                 var hltex_path = hltex_docs[i].path;
-                console.log('Hltex path: ', hltex_path);
+                // console.log('Hltex path: ', hltex_path);
                 var tex_path = hltex_path.slice(0, -6) + '.tex';
-                console.log('Tex path: ', tex_path);
+                // console.log('Tex path: ', tex_path);
                 for (var j = 0; j < tex_docs.length; j++) {
+                    // console.log('Examining tex doc:', tex_docs[j]);
                     if (tex_docs[j].path == tex_path) {
                         hltex_docs[i].tex_id = tex_docs[j].id;
                     }
                 }
+                // console.log('Tex id: ', hltex_docs[i].tex_id);
+                // console.log('Hltex doc:', hltex_docs[i]);
                 if (!hltex_docs[i].tex_id) {
-                    console.log('Missing tex doc for ', hltex_path);
-                    return;
+                    var folder = window._ide.$scope.rootFolder;
+                    var path = hltex_path.split('/');
+                    for (var j = 0; j < path.length - 1; j++) {
+                        for (var k = 0; k < folder.children.length; k++) {
+                            if (folder.children[k].name == path[j]) {
+                                folder = folder.children[k];
+                                break;
+                            }
+                        }
+                        console.log('Failed to create tex doc at', hltex_path);
+                        window.recompiling = false;
+                        return;
+                    }
+
+                    // console.log('Doc name:', hltex_docs[i].name);
+                    // console.log('Sliced name:', hltex_docs[i].name.slice(0, -6));
+
+                    console.log('Creating tex doc', hltex_path);
+                    res = await _ide.fileTreeManager.createDoc(hltex_docs[i].name.slice(0, -6) + '.tex', folder)
+                    console.log(res);
+                    hltex_docs[i].tex_id = res.data._id;
+                    // await new Promise(resolve => setTimeout(resolve, 1000));
                 }
             }
 
@@ -74,6 +98,7 @@ interval = setInterval(function() {
             for (var i = 0; i < docs.length; i++) {
                 await new Promise(resolve => {
                     idecopy.socket.emit('joinDoc', docs[i].id, { encodeRanges: true }, function (error, docLines, version, updates, ranges) {
+                        console.log(error);
                         idecopy.socket.emit('applyOtUpdate', docs[i].id, { doc: docs[i].id, op: [
                             {"p": 0, "d": docLines.join('\n')},
                             {"p": 0, "i": docs[i].text}
