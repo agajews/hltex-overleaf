@@ -158,6 +158,9 @@ interval = setInterval(function() {
         });
         // new_element.classList.add('btn-recompile');
         new_element.id = 'recompilebutton';
+        document.getElementsByClassName('btn-recompile')[1].style.visibility = 'hidden';
+        document.getElementsByClassName('btn-recompile')[0].style["border-top-right-radius"] = '25px';
+        document.getElementsByClassName('btn-recompile')[0].style["border-bottom-right-radius"] = '25px';
 
         clearInterval(interval);
     }
