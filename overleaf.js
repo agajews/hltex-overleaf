@@ -10,38 +10,85 @@ interval = setInterval(function() {
         oldRecompile = window._ide.$scope.recompile;
         window.oldRecompile = oldRecompile;
         // toparse = document.getElementById('toparse');
-        window._ide.$scope.recompile = function() {
+        window._ide.$scope.recompile = async function() {
             if (window.recompiling) {  // poor man's mutex
                 return;
             }
             window.recompiling = true;
             console.log('recompiling!');
 
-            // toparse.textContent = window._ide.editorManager.getCurrentDocValue();
-            e = new CustomEvent('readytoparse', { detail: window._ide.editorManager.getCurrentDocValue() });
+            var docs = window._ide.$scope.docs;
+            var hltex_docs = [];
+            var tex_docs = [];
+            for (var i = 0; i < docs.length; i++) {
+                name = docs[i].doc.name;
+                if (name.endsWith('.hltex')) {
+                    docLines = await new Promise(resolve => {
+                        idecopy.socket.emit('joinDoc', docs[i].doc.id, { encodeRanges: true }, function (error, docLines, version, updates, ranges) {
+                            resolve(docLines);
+                        });
+                    });
+                    hltex_docs.push({
+                        text: docLines.join('\n'),
+                        // id: docs[i].doc.id,
+                        path: docs[i].path,
+                    });
+                } else if (name.endsWith('.tex')) {
+                    tex_docs.push({
+                        path: docs[i].path,
+                        id: docs[i].doc.id,
+                    });
+                }
+            }
+
+            console.log('Hltex docs: ', hltex_docs);
+            console.log('Tex docs: ', tex_docs);
+
+            // why doesn't javascript have hashmaps
+            for (var i = 0; i < hltex_docs.length; i++) {
+                var hltex_path = hltex_docs[i].path;
+                console.log('Hltex path: ', hltex_path);
+                var tex_path = hltex_path.slice(0, -6) + '.tex';
+                console.log('Tex path: ', tex_path);
+                for (var j = 0; j < tex_docs.length; j++) {
+                    if (tex_docs[j].path == tex_path) {
+                        hltex_docs[i].tex_id = tex_docs[j].id;
+                    }
+                }
+                if (!hltex_docs[i].tex_id) {
+                    console.log('Missing tex doc for ', hltex_path);
+                    return;
+                }
+            }
+
+            var e = new CustomEvent('readytoparse', { detail: hltex_docs });
             document.dispatchEvent(e);
         }
 
-        document.addEventListener('readytocompile', function(e) {
+        document.addEventListener('readytocompile', async function(e) {
             e.preventDefault();
+            var docs = e.detail;
             console.log('Received readytocompile');
-            console.log(e.detail);
-            // compiled = toparse.textContent;
-            // console.log(compiled);
-            // toparse.textContent = '';
+            console.log('Tex docs: ', docs);
 
-            idecopy.socket.emit('joinDoc', texid, { encodeRanges: true }, function (error, docLines, version, updates, ranges) {
-                idecopy.socket.emit('applyOtUpdate', texid, { doc: texid, op: [
-                    {"p": 0, "d": docLines.join('\n')},
-                    {"p": 0, "i": e.detail}
-                ], v: version }, function(error) {
-                    console.log(error);
-                    oldRecompile({});
-                    setTimeout(function() {
-                        window.recompiling = false;
-                    }, 1000);
-                })
-            });
+            for (var i = 0; i < docs.length; i++) {
+                await new Promise(resolve => {
+                    idecopy.socket.emit('joinDoc', docs[i].id, { encodeRanges: true }, function (error, docLines, version, updates, ranges) {
+                        idecopy.socket.emit('applyOtUpdate', docs[i].id, { doc: docs[i].id, op: [
+                            {"p": 0, "d": docLines.join('\n')},
+                            {"p": 0, "i": docs[i].text}
+                        ], v: version }, function(error) {
+                            console.log(error);
+                            resolve();
+                        })
+                    });
+                });
+            }
+
+            oldRecompile({});
+            setTimeout(function() {
+                window.recompiling = false;
+            }, 1000);
 
         });
 

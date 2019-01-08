@@ -1,11 +1,5 @@
 'use strict';
 
-chrome.runtime.onInstalled.addListener(function() {
-    chrome.storage.sync.set({color: '#3aa757'}, function() {
-        console.log("The color is green.");
-    });
-});
-
 chrome.webRequest.onBeforeRequest.addListener(
     function(details) {
         console.log(details.url);
@@ -38,50 +32,30 @@ chrome.webRequest.onHeadersReceived.addListener(details => {
 }, {urls: ["https://raw.githubusercontent.com/agajews/hltex-chrome/master/raven-3.27.0.min.js"]},
     ['blocking', 'responseHeaders']);
 
-// chrome.webRequest.onBeforeRequest.addListener(
-//   function(details) { return {cancel: true}; },
-//   {urls: ["*://www.evil.com/*"]},
-//   ["blocking"]);
-
-
-// chrome.runtime.sendNativeMessage('com.hltex.overleaf',
-//     { text: "Hello" },
-//     function(response) {
-//         console.log('Last error: ', chrome.runtime.lastError);
-//         console.log('Response from translator: ', response);
-//     });
-
-// var port = chrome.runtime.connectNative("com.google.chrome.example.echo");
-// port.postMessage({text: "hello"});
-// // console.log('Last error after ping: ', chrome.runtime.lastError);
-
-// port.onMessage.addListener((response) => {
-//     console.log("Received: " + response);
-// });
-
-// port.onDisconnect.addListener(function() {
-//     console.log("Disconnected");
-// });
-
 chrome.runtime.onMessage.addListener(
     function(request, sender, sendResponse) {
-        console.log('Received request ', request)
-        // port.postMessage({text: "hello"});
-        // console.log('Sending hello');
-        chrome.runtime.sendNativeMessage('com.hltex.overleaf',
-            request,
-            function(response) {
-                console.log('Last error: ', chrome.runtime.lastError);
-                console.log('Response from echo: ', response);
-                sendResponse(response);
-            });
-        // port.postMessage("ping");
-        // chrome.runtime.sendNativeMessage('com.hltex.overleaf',
-        //     { text: "Hello" },
-        //     function(response) {
-        //         console.log('Last error: ', chrome.runtime.lastError);
-        //         console.log('Response from translator: ', response);
-        //         sendResponse({ response: response });
-        //     });
+        async function translate() {
+            console.log('Received request ', request);
+            var docs = request.docs;
+            console.log('Received docs ', docs);
+            var tex_docs = [];
+            for (var i = 0; i < docs.length; i++) {
+                var response = await new Promise(resolve => {
+                    chrome.runtime.sendNativeMessage('com.hltex.overleaf', docs[i], resolve)
+                });
+                tex_docs.push({
+                    text: response.text,
+                    path: docs[i].path,
+                    id: docs[i].tex_id,
+                });
+            }
+            console.log('Last error: ', chrome.runtime.lastError);
+            console.log('Tex docs: ', tex_docs);
+            console.log('sendResponse', sendResponse);
+            sendResponse({ docs: tex_docs });
+            console.log('Sent response');
+            console.log('Last error: ', chrome.runtime.lastError);
+        }
+        translate();
         return true;
     });

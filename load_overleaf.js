@@ -8,9 +8,9 @@ document.addEventListener('readytoparse', function(e) {
     console.log('Received readytoparse');
     console.log(e.detail);
 
-    chrome.runtime.sendMessage({ text: e.detail }, function(response) {
-        console.log(response);
-        e = new CustomEvent('readytocompile', { detail: response.text });
+    chrome.runtime.sendMessage({ docs: e.detail }, function(response) {
+        console.log('Background responded with', response);
+        var e = new CustomEvent('readytocompile', { detail: response.docs });
         document.dispatchEvent(e);
     });
 })
