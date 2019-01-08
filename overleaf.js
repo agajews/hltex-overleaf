@@ -30,19 +30,26 @@ interval = setInterval(function() {
             var hltex_docs = [];
             var tex_docs = [];
             for (var i = 0; i < docs.length; i++) {
-                name = docs[i].doc.name;
+                var current = docs[i].doc.id == window._ide.$scope.editor.open_doc_id;
+                var name = docs[i].doc.name;
                 if (name.endsWith('.hltex')) {
-                    docLines = await new Promise(resolve => {
-                        idecopy.socket.emit('joinDoc', docs[i].doc.id, { encodeRanges: true }, function (error, docLines, version, updates, ranges) {
-                            resolve(docLines);
+                    var text = null;
+                    if (current) {
+                        text = window._ide.$scope.editor.sharejs_doc.getSnapshot();
+                    } else {
+                        var docLines = await new Promise(resolve => {
+                            idecopy.socket.emit('joinDoc', docs[i].doc.id, { encodeRanges: true }, function (error, docLines, version, updates, ranges) {
+                                resolve(docLines);
+                            });
                         });
-                    });
+                        text = docLines.join('\n');
+                    }
                     hltex_docs.push({
-                        text: docLines.join('\n'),
+                        text: text,
                         name: name,
                         // id: docs[i].doc.id,
                         path: docs[i].path,
-                        current: docs[i].doc.id == window._ide.$scope.editor.open_doc_id,
+                        current: current,
                     });
                 } else if (name.endsWith('.tex')) {
                     tex_docs.push({
