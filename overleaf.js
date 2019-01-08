@@ -11,6 +11,10 @@ interval = setInterval(function() {
         window.oldRecompile = oldRecompile;
         // toparse = document.getElementById('toparse');
         window._ide.$scope.recompile = function() {
+            if (window.recompiling) {  // poor man's mutex
+                return;
+            }
+            window.recompiling = true;
             console.log('recompiling!');
 
             // toparse.textContent = window._ide.editorManager.getCurrentDocValue();
@@ -33,6 +37,9 @@ interval = setInterval(function() {
                 ], v: version }, function(error) {
                     console.log(error);
                     oldRecompile({});
+                    setTimeout(function() {
+                        window.recompiling = false;
+                    }, 1000);
                 })
             });
 

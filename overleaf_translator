@@ -16,10 +16,10 @@ while 1:
 
     document = sys.stdin.buffer.read(text_length)
     document = json.loads(document.decode('utf-8'))['text']
+    sys.stderr.write(document + '\n')
+
     translator = Translator(document)
     res = translator.translate()
-
-    sys.stderr.write(document + '\n')
 
     #The text to send back to the app.
     text = json.dumps({'text': res})
