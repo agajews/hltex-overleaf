@@ -45,8 +45,11 @@ chrome.runtime.onMessage.addListener(
                 });
                 tex_docs.push({
                     text: response.text,
+                    error: response.error,
+                    line: response.line,
                     path: docs[i].path,
                     id: docs[i].tex_id,
+                    current: docs[i].current,
                 });
             }
             console.log('Last error: ', chrome.runtime.lastError);
