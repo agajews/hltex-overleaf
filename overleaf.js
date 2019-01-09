@@ -1,6 +1,11 @@
 console.log('hello from overleaf!');
 
-function endRecompile() {
+function endRecompile(errored) {
+    if (errored) {
+        console.log('Reloading...');
+        location.reload();
+    }
+
     window.recompiling = false;
     document.getElementsByClassName('btn-recompile')[0].children[1].innerHTML = "Recompile";
     document.getElementsByClassName('btn-recompile')[0].children[0].classList.remove('fa-spin');
@@ -45,11 +50,21 @@ interval = setInterval(function() {
                     if (current) {
                         text = window._ide.$scope.editor.sharejs_doc.getSnapshot();
                     } else {
-                        var docLines = await new Promise(resolve => {
-                            idecopy.socket.emit('joinDoc', docs[i].doc.id, { encodeRanges: true }, function (error, docLines, version, updates, ranges) {
-                                resolve(docLines);
+                        try {
+                            var docLines = await new Promise((resolve, reject) => {
+                                idecopy.socket.emit('joinDoc', docs[i].doc.id, { encodeRanges: true }, function (error, docLines, version, updates, ranges) {
+                                    if (error) {
+                                        reject(error);
+                                        return;
+                                    }
+                                    resolve(docLines);
+                                });
                             });
-                        });
+                        } catch (err) {
+                            console.log(err);
+                            endRecompile(true);
+                            return;
+                        }
                         text = docLines.join('\n');
                     }
                     hltex_docs.push({
@@ -95,7 +110,7 @@ interval = setInterval(function() {
                             }
                         }
                         console.log('Failed to create tex doc at', hltex_path);
-                        endRecompile();
+                        endRecompile(true);
                         return;
                     }
 
@@ -103,7 +118,13 @@ interval = setInterval(function() {
                     // console.log('Sliced name:', hltex_docs[i].name.slice(0, -6));
 
                     console.log('Creating tex doc', hltex_path);
-                    res = await _ide.fileTreeManager.createDoc(hltex_docs[i].name.slice(0, -6) + '.tex', folder)
+                    try {
+                        res = await _ide.fileTreeManager.createDoc(hltex_docs[i].name.slice(0, -6) + '.tex', folder)
+                    } catch(err) {
+                        console.log(err);
+                        endRecompile(true);
+                        return;
+                    }
                     console.log(res);
                     hltex_docs[i].tex_id = res.data._id;
                     // await new Promise(resolve => setTimeout(resolve, 1000));
@@ -158,18 +179,33 @@ interval = setInterval(function() {
                     if (docs[i].current) {
                         _ide.$scope.editor.sharejs_doc.ace.session.clearAnnotations();
                     }
-                    await new Promise(resolve => {
-                        idecopy.socket.emit('joinDoc', docs[i].id, { encodeRanges: true }, function (error, docLines, version, updates, ranges) {
-                            console.log(error);
-                            idecopy.socket.emit('applyOtUpdate', docs[i].id, { doc: docs[i].id, op: [
-                                {"p": 0, "d": docLines.join('\n')},
-                                {"p": 0, "i": docs[i].text}
-                            ], v: version }, function(error) {
-                                console.log(error);
-                                resolve();
-                            })
+                    try {
+                        await new Promise((resolve, reject) => {
+                            idecopy.socket.emit('joinDoc', docs[i].id, { encodeRanges: true }, function (error, docLines, version, updates, ranges) {
+                                if (error) {
+                                    console.log(error);
+                                    reject(error);
+                                    return;
+                                }
+                                idecopy.socket.emit('applyOtUpdate', docs[i].id, { doc: docs[i].id, op: [
+                                    {"p": 0, "d": docLines.join('\n')},
+                                    {"p": 0, "i": docs[i].text}
+                                ], v: version }, function(error) {
+                                    if (error) {
+                                        console.log(error);
+                                        reject(error);
+                                        return;
+                                    }
+                                    resolve();
+                                })
+                            });
                         });
-                    });
+                    } catch (err) {
+                        console.log(error);
+                        endRecompile(true);
+                        return;
+                    }
+
                 } else if (docs[i].current) {
                     _ide.$scope.editor.sharejs_doc.ace.session.setAnnotations([{
                         row: docs[i].line,
@@ -182,6 +218,8 @@ interval = setInterval(function() {
                         type: "error",
                         text: docs[i].error,
                     }]);
+                    endRecompile();
+                    return;
                 }
             }
 
