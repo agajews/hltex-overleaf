@@ -163,11 +163,583 @@ interval = setInterval(function() {
             e.preventDefault();
             window._ide.$scope.recompile()
         });
-        // new_element.classList.add('btn-recompile');
+
+
         new_element.id = 'recompilebutton';
         document.getElementsByClassName('btn-recompile')[1].style.visibility = 'hidden';
         document.getElementsByClassName('btn-recompile')[0].style["border-top-right-radius"] = '25px';
         document.getElementsByClassName('btn-recompile')[0].style["border-bottom-right-radius"] = '25px';
+
+        _ide.$scope.$on('doc:opened', function() {
+            setTimeout(function() {
+                if (_ide.$scope.editor.open_doc_name.endsWith('.hltex')) {
+                    _ide.$scope.editor.sharejs_doc.ace.session.setMode('ace/mode/hltex');
+                }
+            }, 50);
+        });
+
+        ace.define("ace/mode/hltex_highlight_rules", ["require", "exports", "module", "ace/lib/oop", "ace/mode/text_highlight_rules"], function(require, exports, module) {
+            "use strict";
+            var oop = require("../lib/oop")
+            , TextHighlightRules = require("./text_highlight_rules").TextHighlightRules
+            , LatexHighlightRules = function() {
+                this.$rules = {
+                    start: [{
+                        token: "comment",
+                        regex: "%.*$"
+                    }, {
+                        token: ["keyword", "lparen", "variable.parameter", "rparen", "lparen", "storage.type", "rparen"],
+                        regex: "(\\\\(?:documentclass|usepackage|input))(?:(\\[)([^\\]]*)(\\]))?({)([^}]*)(})"
+                    }, {
+                        token: ["keyword", "lparen", "variable.parameter", "rparen"],
+                        regex: "(\\\\(?:label|v?ref|cite(?:[^{]*)))(?:({)([^}]*)(}))?"
+                    }, {
+                        token: ["storage.type", "lparen", "variable.parameter", "rparen"],
+                        regex: "(\\\\begin)({)(verbatim)(})",
+                        next: "verbatim"
+                    }, {
+                        token: ["storage.type", "lparen", "variable.parameter", "rparen"],
+                        regex: "(\\\\begin)({)(lstlisting)(})",
+                        next: "lstlisting"
+                    }, {
+                        token: ["storage.type", "lparen", "variable.parameter", "rparen"],
+                        regex: "(\\\\(?:begin|end))({)([\\w*]*)(})"
+                    }, {
+                        token: "storage.type",
+                        regex: /\\verb\b\*?/,
+                        next: [{
+                            token: ["keyword.operator", "string", "keyword.operator"],
+                            regex: "(.)(.*?)(\\1|$)|",
+                            next: "start"
+                        }]
+                    }, {
+                        token: "storage.type",
+                        regex: "\\\\[a-zA-Z]+"
+                    }, {
+                        token: "lparen",
+                        regex: "[[({]"
+                    }, {
+                        token: "rparen",
+                        regex: "[\\])}]"
+                    }, {
+                        token: "constant.character.escape",
+                        regex: "\\\\[^a-zA-Z]?"
+                    }, {
+                        token: "string",
+                        regex: "\\${1,2}",
+                        next: "equation"
+                    }],
+                    equation: [{
+                        token: "comment",
+                        regex: "%.*$"
+                    }, {
+                        token: "string",
+                        regex: "\\${1,2}",
+                        next: "start"
+                    }, {
+                        token: "constant.character.escape",
+                        regex: "\\\\(?:[^a-zA-Z]|[a-zA-Z]+)"
+                    }, {
+                        token: "error",
+                        regex: "^\\s*$",
+                        next: "start"
+                    }, {
+                        defaultToken: "string"
+                    }],
+                    verbatim: [{
+                        token: ["storage.type", "lparen", "variable.parameter", "rparen"],
+                        regex: "(\\\\end)({)(verbatim)(})",
+                        next: "start"
+                    }, {
+                        defaultToken: "text"
+                    }],
+                    lstlisting: [{
+                        token: ["storage.type", "lparen", "variable.parameter", "rparen"],
+                        regex: "(\\\\end)({)(lstlisting)(})",
+                        next: "start"
+                    }, {
+                        defaultToken: "text"
+                    }]
+                },
+                this.normalizeRules()
+            };
+            oop.inherits(LatexHighlightRules, TextHighlightRules),
+            exports.LatexHighlightRules = LatexHighlightRules
+        });
+
+        // ace.define("ace/mode/folding/hltex", ["require", "exports", "module", "ace/lib/oop", "ace/mode/folding/fold_mode", "ace/range", "ace/token_iterator"], function(require, exports, module) {
+        //     "use strict";
+        //     var oop = require("../../lib/oop")
+        //     , BaseFoldMode = require("./fold_mode").FoldMode
+        //     , Range = require("../../range").Range
+        //     , TokenIterator = require("../../token_iterator").TokenIterator
+        //     , keywordLevels = {
+        //         "\\subparagraph": 1,
+        //         "\\paragraph": 2,
+        //         "\\subsubsubsection": 3,
+        //         "\\subsubsection": 4,
+        //         "\\subsection": 5,
+        //         "\\section": 6,
+        //         "\\chapter": 7,
+        //         "\\part": 8,
+        //         "\\begin": 9,
+        //         "\\end": 10
+        //     }
+        //     , FoldMode = exports.FoldMode = function() {}
+        //     ;
+        //     oop.inherits(FoldMode, BaseFoldMode),
+        //     function() {
+        //         this.foldingStartMarker = /^\s*\\(begin)|\s*\\(part|chapter|(?:sub)*(?:section|paragraph))\b|{\s*$/,
+        //         this.foldingStopMarker = /^\s*\\(end)\b|^\s*}/,
+        //         this.getFoldWidgetRange = function(session, foldStyle, row) {
+        //             var line = session.doc.getLine(row)
+        //             , match = this.foldingStartMarker.exec(line);
+        //             if (match)
+        //                 return match[1] ? this.latexBlock(session, row, match[0].length - 1) : match[2] ? this.latexSection(session, row, match[0].length - 1) : this.openingBracketBlock(session, "{", row, match.index);
+        //             var match = this.foldingStopMarker.exec(line);
+        //             return match ? match[1] ? this.latexBlock(session, row, match[0].length - 1) : this.closingBracketBlock(session, "}", row, match.index + match[0].length) : void 0
+        //         }
+        //         ,
+        //         this.latexBlock = function(session, row, column, returnRange) {
+        //             var keywords = {
+        //                 "\\begin": 1,
+        //                 "\\end": -1
+        //             }
+        //             , stream = new TokenIterator(session,row,column)
+        //             , token = stream.getCurrentToken();
+        //             if (token && ("storage.type" == token.type || "constant.character.escape" == token.type)) {
+        //                 var val = token.value
+        //                 , dir = keywords[val]
+        //                 , getType = function() {
+        //                     var token = stream.stepForward()
+        //                     , type = "lparen" == token.type ? stream.stepForward().value : "";
+        //                     return -1 === dir && (stream.stepBackward(),
+        //                     type && stream.stepBackward()),
+        //                     type
+        //                 }
+        //                 , stack = [getType()]
+        //                 , startColumn = -1 === dir ? stream.getCurrentTokenColumn() : session.getLine(row).length
+        //                 , startRow = row;
+        //                 for (stream.step = -1 === dir ? stream.stepBackward : stream.stepForward; token = stream.step(); )
+        //                     if (token && ("storage.type" == token.type || "constant.character.escape" == token.type)) {
+        //                         var level = keywords[token.value];
+        //                         if (level) {
+        //                             var type = getType();
+        //                             if (level === dir)
+        //                                 stack.unshift(type);
+        //                             else if (stack.shift() !== type || !stack.length)
+        //                                 break
+        //                         }
+        //                     }
+        //                 if (!stack.length) {
+        //                     if (1 == dir && (stream.stepBackward(),
+        //                     stream.stepBackward()),
+        //                     returnRange)
+        //                         return stream.getCurrentTokenRange();
+        //                     var row = stream.getCurrentTokenRow();
+        //                     return -1 === dir ? new Range(row,session.getLine(row).length,startRow,startColumn) : new Range(startRow,startColumn,row,stream.getCurrentTokenColumn())
+        //                 }
+        //             }
+        //         }
+        //         ,
+        //         this.latexSection = function(session, row, column) {
+        //             var stream = new TokenIterator(session,row,column)
+        //             , token = stream.getCurrentToken();
+        //             if (token && "storage.type" == token.type) {
+        //                 for (var startLevel = keywordLevels[token.value] || 0, stackDepth = 0, endRow = row; token = stream.stepForward(); )
+        //                     if ("storage.type" === token.type) {
+        //                         var level = keywordLevels[token.value] || 0;
+        //                         if (level >= 9) {
+        //                             if (stackDepth || (endRow = stream.getCurrentTokenRow() - 1),
+        //                             stackDepth += 9 == level ? 1 : -1,
+        //                             0 > stackDepth)
+        //                                 break
+        //                         } else if (level >= startLevel)
+        //                             break
+        //                     }
+        //                 for (stackDepth || (endRow = stream.getCurrentTokenRow() - 1); endRow > row && !/\S/.test(session.getLine(endRow)); )
+        //                     endRow--;
+        //                 return new Range(row,session.getLine(row).length,endRow,session.getLine(endRow).length)
+        //             }
+        //         }
+        //     }
+        //     .call(FoldMode.prototype)
+        // });
+
+        // ace.define("ace/mode/behaviour/hltex", ["require", "exports", "module", "ace/lib/oop", "ace/mode/behaviour", "ace/token_iterator", "ace/lib/lang"], function(require, exports, module) {
+        //     "use strict";
+        //     var context, oop = require("../../lib/oop"), Behaviour = require("../behaviour").Behaviour, TokenIterator = require("../../token_iterator").TokenIterator, SAFE_INSERT_IN_TOKENS = (require("../../lib/lang"),
+        //     ["text", "paren.rparen", "punctuation.operator"]), SAFE_INSERT_BEFORE_TOKENS = ["text", "paren.rparen", "punctuation.operator", "comment"], contextCache = {}, initContext = function(editor) {
+        //         var id = -1;
+        //         return editor.multiSelect && (id = editor.selection.index,
+        //         contextCache.rangeCount != editor.multiSelect.rangeCount && (contextCache = {
+        //             rangeCount: editor.multiSelect.rangeCount
+        //         })),
+        //         contextCache[id] ? context = contextCache[id] : void (context = contextCache[id] = {
+        //             autoInsertedBrackets: 0,
+        //             autoInsertedRow: -1,
+        //             autoInsertedLineEnd: "",
+        //             maybeInsertedBrackets: 0,
+        //             maybeInsertedRow: -1,
+        //             maybeInsertedLineStart: "",
+        //             maybeInsertedLineEnd: ""
+        //         })
+        //     }, getWrapped = function(selection, selected, opening, closing) {
+        //         var rowDiff = selection.end.row - selection.start.row;
+        //         return {
+        //             text: opening + selected + closing,
+        //             selection: [0, selection.start.column + 1, rowDiff, selection.end.column + (rowDiff ? 0 : 1)]
+        //         }
+        //     }, LatexBehaviour = function() {
+        //         this.add("braces", "insertion", function(state, action, editor, session, text) {
+        //             if (!(editor.completer && editor.completer.popup && editor.completer.popup.isOpen)) {
+        //                 var cursor = editor.getCursorPosition()
+        //                 , line = session.doc.getLine(cursor.row)
+        //                 , lastChar = line[cursor.column - 1];
+        //                 if ("\\" !== lastChar)
+        //                     if ("{" == text) {
+        //                         initContext(editor);
+        //                         var selection = editor.getSelectionRange()
+        //                         , selected = session.doc.getTextRange(selection);
+        //                         if ("" !== selected && editor.getWrapBehavioursEnabled())
+        //                             return getWrapped(selection, selected, "{", "}");
+        //                         if (LatexBehaviour.isSaneInsertion(editor, session))
+        //                             return LatexBehaviour.recordAutoInsert(editor, session, "}"),
+        //                             {
+        //                                 text: "{}",
+        //                                 selection: [1, 1]
+        //                             }
+        //                     } else if ("}" == text) {
+        //                         initContext(editor);
+        //                         var rightChar = line.substring(cursor.column, cursor.column + 1);
+        //                         if ("}" == rightChar) {
+        //                             var matching = session.$findOpeningBracket("}", {
+        //                                 column: cursor.column + 1,
+        //                                 row: cursor.row
+        //                             });
+        //                             if (null !== matching && LatexBehaviour.isAutoInsertedClosing(cursor, line, text))
+        //                                 return LatexBehaviour.popAutoInsertedClosing(),
+        //                                 {
+        //                                     text: "",
+        //                                     selection: [1, 1]
+        //                                 }
+        //                         }
+        //                     }
+        //             }
+        //         }),
+        //         this.add("braces", "deletion", function(state, action, editor, session, range) {
+        //             if (!(editor.completer && editor.completer.popup && editor.completer.popup.isOpen)) {
+        //                 var selected = session.doc.getTextRange(range);
+        //                 if (!range.isMultiLine() && "{" == selected) {
+        //                     initContext(editor);
+        //                     var line = session.doc.getLine(range.start.row)
+        //                     , rightChar = line.substring(range.start.column + 1, range.start.column + 2);
+        //                     if ("}" == rightChar)
+        //                         return range.end.column++,
+        //                         range
+        //                 }
+        //             }
+        //         }),
+        //         this.add("brackets", "insertion", function(state, action, editor, session, text) {
+        //             if (!(editor.completer && editor.completer.popup && editor.completer.popup.isOpen)) {
+        //                 var cursor = editor.getCursorPosition()
+        //                 , line = session.doc.getLine(cursor.row)
+        //                 , lastChar = line[cursor.column - 1];
+        //                 if ("\\" !== lastChar)
+        //                     if ("[" == text) {
+        //                         initContext(editor);
+        //                         var selection = editor.getSelectionRange()
+        //                         , selected = session.doc.getTextRange(selection);
+        //                         if ("" !== selected && editor.getWrapBehavioursEnabled())
+        //                             return getWrapped(selection, selected, "[", "]");
+        //                         if (LatexBehaviour.isSaneInsertion(editor, session))
+        //                             return LatexBehaviour.recordAutoInsert(editor, session, "]"),
+        //                             {
+        //                                 text: "[]",
+        //                                 selection: [1, 1]
+        //                             }
+        //                     } else if ("]" == text) {
+        //                         initContext(editor);
+        //                         var rightChar = line.substring(cursor.column, cursor.column + 1);
+        //                         if ("]" == rightChar) {
+        //                             var matching = session.$findOpeningBracket("]", {
+        //                                 column: cursor.column + 1,
+        //                                 row: cursor.row
+        //                             });
+        //                             if (null !== matching && LatexBehaviour.isAutoInsertedClosing(cursor, line, text))
+        //                                 return LatexBehaviour.popAutoInsertedClosing(),
+        //                                 {
+        //                                     text: "",
+        //                                     selection: [1, 1]
+        //                                 }
+        //                         }
+        //                     }
+        //             }
+        //         }),
+        //         this.add("brackets", "deletion", function(state, action, editor, session, range) {
+        //             if (!(editor.completer && editor.completer.popup && editor.completer.popup.isOpen)) {
+        //                 var selected = session.doc.getTextRange(range);
+        //                 if (!range.isMultiLine() && "[" == selected) {
+        //                     initContext(editor);
+        //                     var line = session.doc.getLine(range.start.row)
+        //                     , rightChar = line.substring(range.start.column + 1, range.start.column + 2);
+        //                     if ("]" == rightChar)
+        //                         return range.end.column++,
+        //                         range
+        //                 }
+        //             }
+        //         }),
+        //         this.add("dollars", "insertion", function(state, action, editor, session, text) {
+        //             var cursor = editor.getCursorPosition()
+        //             , line = session.doc.getLine(cursor.row)
+        //             , lastChar = line[cursor.column - 1];
+        //             if ("\\" !== lastChar && "$" == text) {
+        //                 if (this.lineCommentStart && -1 != this.lineCommentStart.indexOf(text))
+        //                     return;
+        //                 initContext(editor);
+        //                 var quote = text
+        //                 , selection = editor.getSelectionRange()
+        //                 , selected = session.doc.getTextRange(selection);
+        //                 if ("" !== selected && "$" !== selected && editor.getWrapBehavioursEnabled())
+        //                     return getWrapped(selection, selected, quote, quote);
+        //                 if (!selected) {
+        //                     var pair, leftChar = line.substring(cursor.column - 1, cursor.column), rightChar = line.substring(cursor.column, cursor.column + 1), token = session.getTokenAt(cursor.row, cursor.column), rightToken = session.getTokenAt(cursor.row, cursor.column + 1), stringBefore = token && /string|escape/.test(token.type), stringAfter = !rightToken || /string|escape/.test(rightToken.type);
+        //                     if (rightChar == quote)
+        //                         pair = stringBefore !== stringAfter,
+        //                         pair && /string\.end/.test(rightToken.type) && (pair = !1);
+        //                     else {
+        //                         if (stringBefore && !stringAfter)
+        //                             return null;
+        //                         if (stringBefore && stringAfter)
+        //                             return null;
+        //                         var wordRe = session.$mode.tokenRe;
+        //                         wordRe.lastIndex = 0;
+        //                         var isWordBefore = wordRe.test(leftChar);
+        //                         wordRe.lastIndex = 0;
+        //                         var isWordAfter = wordRe.test(leftChar);
+        //                         if (isWordBefore || isWordAfter)
+        //                             return null;
+        //                         if (rightChar && !/[\s;,.})\]\\]/.test(rightChar))
+        //                             return null;
+        //                         pair = !0
+        //                     }
+        //                     return {
+        //                         text: pair ? quote + quote : "",
+        //                         selection: [1, 1]
+        //                     }
+        //                 }
+        //             }
+        //         }),
+        //         this.add("dollars", "deletion", function(state, action, editor, session, range) {
+        //             var selected = session.doc.getTextRange(range);
+        //             if (!range.isMultiLine() && "$" == selected) {
+        //                 initContext(editor);
+        //                 var line = session.doc.getLine(range.start.row)
+        //                 , rightChar = line.substring(range.start.column + 1, range.start.column + 2);
+        //                 if (rightChar == selected)
+        //                     return range.end.column++,
+        //                     range
+        //             }
+        //         })
+        //     };
+        //     LatexBehaviour.isSaneInsertion = function(editor, session) {
+        //         var cursor = editor.getCursorPosition()
+        //         , iterator = new TokenIterator(session,cursor.row,cursor.column);
+        //         if (!this.$matchTokenType(iterator.getCurrentToken() || "text", SAFE_INSERT_IN_TOKENS)) {
+        //             var iterator2 = new TokenIterator(session,cursor.row,cursor.column + 1);
+        //             if (!this.$matchTokenType(iterator2.getCurrentToken() || "text", SAFE_INSERT_IN_TOKENS))
+        //                 return !1
+        //         }
+        //         return iterator.stepForward(),
+        //         iterator.getCurrentTokenRow() !== cursor.row || this.$matchTokenType(iterator.getCurrentToken() || "text", SAFE_INSERT_BEFORE_TOKENS)
+        //     }
+        //     ,
+        //     LatexBehaviour.$matchTokenType = function(token, types) {
+        //         return types.indexOf(token.type || token) > -1
+        //     }
+        //     ,
+        //     LatexBehaviour.recordAutoInsert = function(editor, session, bracket) {
+        //         var cursor = editor.getCursorPosition()
+        //         , line = session.doc.getLine(cursor.row);
+        //         this.isAutoInsertedClosing(cursor, line, context.autoInsertedLineEnd[0]) || (context.autoInsertedBrackets = 0),
+        //         context.autoInsertedRow = cursor.row,
+        //         context.autoInsertedLineEnd = bracket + line.substr(cursor.column),
+        //         context.autoInsertedBrackets++
+        //     }
+        //     ,
+        //     LatexBehaviour.isAutoInsertedClosing = function(cursor, line, bracket) {
+        //         return context.autoInsertedBrackets > 0 && cursor.row === context.autoInsertedRow && bracket === context.autoInsertedLineEnd[0] && line.substr(cursor.column) === context.autoInsertedLineEnd
+        //     }
+        //     ,
+        //     LatexBehaviour.popAutoInsertedClosing = function() {
+        //         context.autoInsertedLineEnd = context.autoInsertedLineEnd.substr(1),
+        //         context.autoInsertedBrackets--
+        //     }
+        //     ,
+        //     oop.inherits(LatexBehaviour, Behaviour),
+        //     exports.LatexBehaviour = LatexBehaviour
+        // });
+
+        ace.define("ace/mode/hltex", ["require", "exports", "module", "ace/lib/oop", "ace/mode/text",
+            "ace/mode/hltex_highlight_rules",
+            // "ace/mode/folding/hltex",
+            // "ace/mode/behaviour/hltex",
+            "ace/worker/worker_client",
+            "ace/range"], function(require, exports, module) {
+            "use strict";
+            var oop = require("../lib/oop")
+            , TextMode = require("./text").Mode
+            , LatexHighlightRules = require("./hltex_highlight_rules").LatexHighlightRules
+            // , LatexFoldMode = require("./folding/hltex").FoldMode
+            , Range = require("../range").Range
+            , WorkerClient = require("ace/worker/worker_client").WorkerClient
+            // , LatexBehaviour = require("./behaviour/hltex").LatexBehaviour
+            , createLatexWorker = function(session) {
+                var doc = session.getDocument()
+                , selection = session.getSelection()
+                , cursorAnchor = selection.lead
+                , savedRange = {}
+                , suppressions = []
+                , hints = []
+                , changeHandler = null
+                , docChangePending = !1
+                , firstPass = !0
+                , worker = new WorkerClient(["ace"],"ace/mode/latex_worker","LatexWorker");
+                worker.attachToDocument(doc);
+                var docChangeHandler = doc.on("change", function() {
+                    docChangePending = !0,
+                    changeHandler && (clearTimeout(changeHandler),
+                    changeHandler = null)
+                })
+                , cursorHandler = selection.on("changeCursor", function() {
+                    docChangePending || (changeHandler = setTimeout(function() {
+                        updateMarkers({
+                            cursorMoveOnly: !0
+                        }),
+                        suppressions = [],
+                        changeHandler = null
+                    }, 100))
+                })
+                , updateMarkers = function(options) {
+                    options || (options = {});
+                    var cursorMoveOnly = options.cursorMoveOnly
+                    , annotations = []
+                    , newRange = {}
+                    , cursor = selection.getCursor()
+                    , maxRow = session.getLength() - 1
+                    , maxCol = maxRow > 0 ? session.getLine(maxRow).length : 0
+                    , cursorAtEndOfDocument = cursor.row == maxRow && cursor.column === maxCol;
+                    suppressions = [];
+                    for (var i = 0, len = hints.length; len > i; i++) {
+                        var hint = hints[i]
+                        , suppressedChanges = 0
+                        , hintRange = new Range(hint.start_row,hint.start_col,hint.end_row,hint.end_col)
+                        , cursorInRange = hintRange.insideEnd(cursor.row, cursor.column)
+                        , cursorAtStart = hintRange.isStart(cursor.row, cursor.column - 1)
+                        , cursorAtEnd = hintRange.isEnd(cursor.row, cursor.column);
+                        if (hint.suppressIfEditing && (cursorAtStart || cursorAtEnd))
+                            suppressions.push(hintRange),
+                            hint.suppressed || suppressedChanges++,
+                            hint.suppressed = !0;
+                        else {
+                            for (var isCascadeError = !1, j = 0, suplen = suppressions.length; suplen > j; j++) {
+                                var badRange = suppressions[j];
+                                if (badRange.intersects(hintRange)) {
+                                    isCascadeError = !0;
+                                    break
+                                }
+                            }
+                            if (isCascadeError)
+                                hint.suppressed || suppressedChanges++,
+                                hint.suppressed = !0;
+                            else if (hint.suppressed && suppressedChanges++,
+                            hint.suppressed = !1,
+                            annotations.push(hint),
+                            "info" !== hint.type) {
+                                var key = hintRange.toString() + (cursorInRange ? "+cursor" : "");
+                                newRange[key] = {
+                                    hint: hint,
+                                    cursorInRange: cursorInRange,
+                                    range: hintRange
+                                }
+                            }
+                        }
+                    }
+                    for (key in newRange)
+                        if (!savedRange[key]) {
+                            var new_range = newRange[key].range;
+                            cursorInRange = newRange[key].cursorInRange,
+                            hint = newRange[key].hint;
+                            var errorAtStart = hint.row === hint.start_row && hint.column === hint.start_col
+                            , movableStart = cursorInRange && !errorAtStart && !cursorAtEndOfDocument
+                            , movableEnd = cursorInRange && errorAtStart && !cursorAtEndOfDocument
+                            , a = movableStart ? cursorAnchor : doc.createAnchor(new_range.start)
+                            , b = movableEnd ? cursorAnchor : doc.createAnchor(new_range.end)
+                            , range = new Range;
+                            range.start = a,
+                            range.end = b;
+                            var cssClass = "ace_error-marker";
+                            "warning" === hint.type && (cssClass = "ace_highlight-marker"),
+                            range.id = session.addMarker(range, cssClass, "text"),
+                            savedRange[key] = range
+                        }
+                    for (key in savedRange)
+                        newRange[key] || (range = savedRange[key],
+                        range.start !== cursorAnchor && range.start.detach(),
+                        range.end !== cursorAnchor && range.end.detach(),
+                        session.removeMarker(range.id),
+                        delete savedRange[key]);
+                    if (!cursorMoveOnly || suppressedChanges)
+                        if (firstPass) {
+                            if (annotations.length > 0) {
+                                var originalAnnotations = session.getAnnotations();
+                                session.setAnnotations(originalAnnotations.concat(annotations))
+                            }
+                            firstPass = !1
+                        } else
+                            session.setAnnotations(annotations)
+                };
+                return worker.on("lint", function(results) {
+                    docChangePending && (docChangePending = !1),
+                    hints = results.data.errors,
+                    hints.length > 100 && (hints = hints.slice(0, 100)),
+                    updateMarkers()
+                }),
+                worker.on("terminate", function() {
+                    changeHandler && (clearTimeout(changeHandler),
+                    changeHandler = null),
+                    doc.off("change", docChangeHandler),
+                    selection.off("changeCursor", cursorHandler);
+                    for (var key in savedRange) {
+                        var range = savedRange[key];
+                        range.start !== cursorAnchor && range.start.detach(),
+                        range.end !== cursorAnchor && range.end.detach(),
+                        session.removeMarker(range.id)
+                    }
+                    savedRange = {},
+                    hints = [],
+                    suppressions = [],
+                    session.clearAnnotations()
+                }),
+                worker
+            }
+            , Mode = function() {
+                this.HighlightRules = LatexHighlightRules
+                // this.foldingRules = new LatexFoldMode,
+                // this.$behaviour = new LatexBehaviour,
+                // this.createWorker = createLatexWorker
+            };
+            oop.inherits(Mode, TextMode),
+            function() {
+                this.type = "text",
+                this.lineCommentStart = "%",
+                this.$id = "ace/mode/hltex"
+            }
+            .call(Mode.prototype),
+            exports.Mode = Mode
+        });
+
+        define("ace/mode-hltex", function() {});
 
         clearInterval(interval);
     }
