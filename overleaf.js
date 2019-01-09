@@ -17,7 +17,7 @@ interval = setInterval(function() {
         window.oldRecompile = oldRecompile;
         // toparse = document.getElementById('toparse');
         window._ide.$scope.recompile = async function() {
-            if (window.recompiling) {  // poor man's mutex
+            if (window.recompiling || _ide.$scope.pdf.compiling) {  // poor man's mutex
                 return;
             }
             window.recompiling = true;
