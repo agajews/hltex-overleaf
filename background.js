@@ -41,8 +41,16 @@ chrome.runtime.onMessage.addListener(
             var tex_docs = [];
             for (var i = 0; i < docs.length; i++) {
                 var response = await new Promise(resolve => {
-                    chrome.runtime.sendNativeMessage('com.hltex.overleaf', docs[i], resolve)
+                    chrome.runtime.sendNativeMessage('com.hltex.overleaf', docs[i], resolve);
                 });
+
+                console.log('Received response', response);
+                if (!response) {
+                    console.log('Last error: ', chrome.runtime.lastError);
+                    sendResponse({ error: chrome.runtime.lastError });
+                    return;
+                }
+
                 tex_docs.push({
                     text: response.text,
                     error: response.error,
@@ -52,12 +60,7 @@ chrome.runtime.onMessage.addListener(
                     current: docs[i].current,
                 });
             }
-            console.log('Last error: ', chrome.runtime.lastError);
-            console.log('Tex docs: ', tex_docs);
-            console.log('sendResponse', sendResponse);
             sendResponse({ docs: tex_docs });
-            console.log('Sent response');
-            console.log('Last error: ', chrome.runtime.lastError);
         }
         translate();
         return true;

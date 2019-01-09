@@ -170,7 +170,16 @@ interval = setInterval(function() {
 
         document.addEventListener('readytocompile', async function(e) {
             e.preventDefault();
-            var docs = e.detail;
+
+            console.log('Received response', e.detail);
+
+            if (!e.detail.docs) {
+                alert('Chrome native messaging raised `' + e.detail.error + '`');
+                endRecompile(true);
+                return;
+            }
+            var docs = e.detail.docs;
+
             console.log('Received readytocompile');
             console.log('Tex docs: ', docs);
 
