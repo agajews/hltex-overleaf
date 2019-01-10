@@ -12,20 +12,20 @@ chrome.runtime.onInstalled.addListener(function() {
     xhr.send();
 });
 
-chrome.webRequest.onBeforeRequest.addListener(
-    function(details) {
-        console.log(details.url);
-        // if(details.url == "https://cdn.sharelatex.com/minjs/ide/pdf/controllers/PdfController.js") {
-        //     console.log("replacing");
-        //     return {redirectUrl: "https://raw.githubusercontent.com/agajews/hltex-chrome/master/PdfController.js"};
-        // }
-        if(details.url == "https://cdn.sharelatex.com/minjs/libs/raven-3.27.0.min.js") {
-            return {redirectUrl: "https://raw.githubusercontent.com/agajews/hltex-chrome/master/raven-3.27.0.min.js"};
-        }
-    },
-    // {urls: ["*://cdn.sharelatex.com/*.js"]},
-    {urls: ["*://cdn.sharelatex.com/*.js"]},
-    ["blocking"]);
+// chrome.webRequest.onBeforeRequest.addListener(
+//     function(details) {
+//         console.log(details.url);
+//         // if(details.url == "https://cdn.sharelatex.com/minjs/ide/pdf/controllers/PdfController.js") {
+//         //     console.log("replacing");
+//         //     return {redirectUrl: "https://raw.githubusercontent.com/agajews/hltex-chrome/master/PdfController.js"};
+//         // }
+//         if(details.url == "https://cdn.sharelatex.com/minjs/libs/raven-3.27.0.min.js") {
+//             return {redirectUrl: "https://raw.githubusercontent.com/agajews/hltex-chrome/master/raven-3.27.0.min.js"};
+//         }
+//     },
+//     // {urls: ["*://cdn.sharelatex.com/*.js"]},
+//     {urls: ["*://cdn.sharelatex.com/*.js"]},
+//     ["blocking"]);
 
 chrome.webRequest.onHeadersReceived.addListener(details => {
     let myResponseHeaders = details.responseHeaders;

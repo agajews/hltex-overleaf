@@ -317,17 +317,35 @@ interval = setInterval(function() {
         document.getElementsByClassName('btn-recompile')[0].style["border-top-right-radius"] = '25px';
         document.getElementsByClassName('btn-recompile')[0].style["border-bottom-right-radius"] = '25px';
 
-        _ide.$scope.$watch('onSave', function() {
-            _ide.$scope.recompile();
-        })
+        function getScopes(root) {
+            var scopes = [];
 
-        _ide.$scope.$watch('recompile_v1', function() {
-            _ide.$scope.recompile();
-        })
+            function visit(scope) {
+                scopes.push(scope);
+            }
+            function traverse(scope) {
+                visit(scope);
+                if (scope.$$nextSibling)
+                    traverse(scope.$$nextSibling);
+                if (scope.$$childHead)
+                    traverse(scope.$$childHead);
+            }
 
-        _ide.$scope.$watch('onCtrlEnter', function() {
-            _ide.$scope.recompile();
-        })
+            traverse(root);
+            return scopes;
+        }
+
+        var scopes = getScopes(_ide.$scope)
+        var editor_scope = null;
+
+        for (var i = 0; i < scopes.length; i++) {
+                if (scopes[i].onSave) {
+                        console.log(i);
+                editor_scope = i;
+            }
+        }
+
+        scopes[editor_scope].onSave = _ide.$scope.recompile
 
         _ide.$scope.$on('doc:opened', function() {
             setTimeout(function() {
