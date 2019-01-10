@@ -792,7 +792,7 @@ interval = setInterval(function() {
                     });
                     this.embedRules(PythonHighlightRules, 'python-' + i + '-', [{
                         token: 'end',
-                        regex: '^' + indent + '[^\\s]',
+                        regex: '(^(    ){0,' + i + '}(?=[^\\s]))',
                         next: 'start',
                     }]);
                 }
