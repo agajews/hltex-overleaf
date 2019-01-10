@@ -1,0 +1,9 @@
+{
+    "name": "com.hltex.overleaf",
+    "description": "Overleaf Integration for HLTeX",
+    "path": "/usr/local/bin/overleaf_translator",
+    "type": "stdio",
+    "allowed_origins": [
+        "chrome-extension://lnkcgiecknmlaohkgeajflfcfnajpbec/"
+    ]
+}
