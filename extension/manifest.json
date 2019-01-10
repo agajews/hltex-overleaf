@@ -14,5 +14,10 @@
         }
     ],
     "web_accessible_resources" : ["overleaf.js"],
-    "manifest_version": 2
+    "manifest_version": 2,
+    "icons": {
+        "16": "overleaf16.png",
+        "48": "overleaf48.png",
+        "128": "overleaf128.png"
+    }
 }

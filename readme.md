@@ -1,6 +1,9 @@
 # Overleaf Integration for HLTeX
 
 ### Usage
-1. Put `com.hltex.overleaf.json` in `/Library/Google/Chrome/NativeMessagingHosts/com.hltex.overleaf.json` (Mac OS X).
-2. Make sure `overleaf_translator` has executable privileges.
-3. Install the extension from `chrome://extensions`, selecting this directory.
+1. Install our [Chrome extension](https://chrome.google.com/webstore/detail/hltex-overleaf/lnkcgiecknmlaohkgeajflfcfnajpbec/related)
+2. Run the following:
+```
+wget https://raw.githubusercontent.com/agajews/hltex-chrome/master/overleaf_translator -P /usr/local/bin/
+wget https://raw.githubusercontent.com/agajews/hltex-chrome/master/com.hltex.overleaf.json -P /Library/Google/Chrome/NativeMessagingHosts/
+```
