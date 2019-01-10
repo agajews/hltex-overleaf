@@ -1,8 +1,9 @@
 console.log('hello from overleaf!');
 
-function endRecompile(errored) {
-    if (errored) {
+function endRecompile(err) {
+    if (err) {
         console.log('Reloading...');
+        alert(err);
         location.reload();
     }
 
@@ -114,16 +115,23 @@ interval = setInterval(function() {
                 if (!hltex_docs[i].tex_id) {
                     var folder = window._ide.$scope.rootFolder;
                     var path = hltex_path.split('/');
+                    // console.log('Hltex path', hltex_path);
+                    // console.log('Children:', folder.children);
                     for (var j = 0; j < path.length - 1; j++) {
+                        var matched = false;
                         for (var k = 0; k < folder.children.length; k++) {
-                            if (folder.children[k].name == path[j]) {
+                            // console.log('Examining', folder.children[k], path[j]);
+                            if (folder.children[k].type == 'folder' && folder.children[k].name == path[j]) {
+                                // console.log('Matched');
                                 folder = folder.children[k];
+                                matched = true;
                                 break;
                             }
                         }
-                        console.log('Failed to create tex doc at', hltex_path);
-                        endRecompile(true);
-                        return;
+                        if (!matched) {
+                            endRecompile('Failed to create tex doc for ' + hltex_path);
+                            return;
+                        }
                     }
 
                     // console.log('Doc name:', hltex_docs[i].name);
@@ -134,7 +142,7 @@ interval = setInterval(function() {
                         res = await _ide.fileTreeManager.createDoc(hltex_docs[i].name.slice(0, -6) + '.tex', folder)
                     } catch(err) {
                         console.log(err);
-                        endRecompile(true);
+                        endRecompile('Failed to create tex doc for ' + hltex_path);
                         return;
                     }
                     console.log(res);
@@ -186,14 +194,14 @@ interval = setInterval(function() {
             console.log('Received response', e.detail);
 
             if (!e.detail) {
-                alert('Chrome native messaging failed');
-                endRecompile(true);
+                // alert('Chrome native messaging failed');
+                endRecompile('Chrome native messaging failed');
                 return;
             }
 
             if (!e.detail.docs) {
-                alert('Chrome native messaging raised `' + e.detail.error + '`');
-                endRecompile(true);
+                // alert('Chrome native messaging raised `' + e.detail.error + '`');
+                endRecompile('Chrome native messaging raised `' + e.detail.error + '`');
                 return;
             }
             var docs = e.detail.docs;
@@ -245,7 +253,7 @@ interval = setInterval(function() {
                         });
                     } catch (err) {
                         console.log(error);
-                        endRecompile(true);
+                        endRecompile('Failed to sync compiled tex with tex doc');
                         return;
                     }
 
