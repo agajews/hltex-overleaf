@@ -2,7 +2,7 @@
     "name": "HLTeX Overleaf",
     "version": "0.1.6",
     "description": "Overleaf Integration!",
-    "permissions": ["webRequest", "webRequestBlocking", "*://raw.githubusercontent.com/", "*://cdn.sharelatex.com/", "*://*.overleaf.com/", "nativeMessaging"],
+    "permissions": ["webRequest", "webRequestBlocking", "*://raw.githubusercontent.com/", "*://cdn.sharelatex.com/", "*://*.overleaf.com/", "nativeMessaging", "file://*"],
     "background": {
         "scripts": ["background.js"],
         "persistent": true

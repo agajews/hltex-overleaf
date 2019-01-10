@@ -22,9 +22,11 @@ while 1:
     translator = Translator(document)
     try:
         res = translator.translate_internal()
+        sys.stderr.write('Translator result: ' + str(res))
     except Exception as e:
         traceback.print_exc()
-        res = {'text': None, 'error': 'Internal compiler error', 'line': translator.get_line()}
+        res = {'text': None, 'error': 'Internal compiler error', 'line': translator.get_line(), 'files': []}
+    sys.stderr.write(str(res))
 
     #The text to send back to the app.
     text = json.dumps(res)

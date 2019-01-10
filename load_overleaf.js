@@ -10,6 +10,7 @@ document.addEventListener('readytoparse', function(e) {
 
     chrome.runtime.sendMessage({ docs: e.detail }, function(response) {
         console.log('Background responded with', response);
+        // console.log('Got text', response.blobText);
         var e = new CustomEvent('readytocompile', { detail: response });
         document.dispatchEvent(e);
     });

@@ -12,6 +12,18 @@ function endRecompile(errored) {
     document.getElementsByClassName('btn-recompile')[0].removeAttribute('disabled');
 }
 
+function strToBlob(str, type) {
+    var i, l, d, array;
+    d = str;
+    l = d.length;
+    array = new Uint8Array(l);
+    for (var i = 0; i < l; i++){
+        array[i] = d.charCodeAt(i);
+    }
+    var blob = new Blob([array], {type: type});
+    return blob;
+}
+
 interval = setInterval(function() {
     if (window._ide) {
         var idecopy = jQuery.extend(true, {}, _ide)
@@ -179,9 +191,25 @@ interval = setInterval(function() {
                 return;
             }
             var docs = e.detail.docs;
+            var blobs = e.detail.blobs
 
             console.log('Received readytocompile');
             console.log('Tex docs: ', docs);
+
+            console.log('Uploading blobs');
+            for (var i = 0; i < blobs.length; i++) {
+                // var blob = new Blob(['{"text": "hi"}']);
+                var blob = strToBlob(blobs[i].blobText, blobs[i].blobType);
+                var formData = new FormData();
+                var filename = blobs[i].path.split('\\').pop().split('/').pop();
+                formData.append("qqfile", blob, filename);
+                var request = new XMLHttpRequest();
+                request.open("POST", window.project_id + '/upload?folder_id=' + window._ide.$scope.rootFolder.id + '&_csrf=' + window.csrfToken)
+                request.onload = function(a) {
+                    console.log(a);
+                }
+                request.send(formData);
+            }
 
             for (var i = 0; i < docs.length; i++) {
                 if (docs[i].text) {

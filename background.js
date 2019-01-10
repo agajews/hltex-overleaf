@@ -1,5 +1,17 @@
 'use strict';
 
+chrome.runtime.onInstalled.addListener(function() {
+    var xhr = new XMLHttpRequest();
+    xhr.onreadystatechange = function () {
+        if (this.readyState == 4) {
+            console.log(this.response);
+        }
+    }
+    xhr.open('GET', "file:///tmp/test.json");
+    xhr.responseType = 'text';
+    xhr.send();
+});
+
 chrome.webRequest.onBeforeRequest.addListener(
     function(details) {
         console.log(details.url);
@@ -39,6 +51,7 @@ chrome.runtime.onMessage.addListener(
             var docs = request.docs;
             console.log('Received docs ', docs);
             var tex_docs = [];
+            var blobs = [];
             for (var i = 0; i < docs.length; i++) {
                 var response = await new Promise(resolve => {
                     chrome.runtime.sendNativeMessage('com.hltex.overleaf', docs[i], resolve);
@@ -51,6 +64,36 @@ chrome.runtime.onMessage.addListener(
                     return;
                 }
 
+                for (var j = 0; j < response.files.length; j++) {
+                    var xhr = new XMLHttpRequest();
+                    var file_promise = new Promise((resolve, reject) => {
+                        // setTimeout(function() {
+                        //     reject();
+                        // }, 2000);
+                        xhr.onreadystatechange = function () {
+                            if (this.readyState == 4) {
+                                resolve(this.response);
+                            }
+                        }
+                    })
+                    xhr.open('GET', "file://" + response.files[j]);
+                    xhr.responseType = 'blob';
+                    xhr.send();
+                    var blob = await file_promise;
+                    console.log('Got blob', blob);
+                    var reader = new FileReader();
+
+                    await new Promise((resolve) => {
+                        reader.onloadend = (event) => {
+                            resolve();
+                        }
+                        reader.readAsBinaryString(blob);
+                    })
+                    // The contents of the BLOB are in reader.result:
+                    console.log(reader.result);
+                    blobs.push({ blobText: reader.result, blobType: blob.type, path: response.files[j] })
+                }
+
                 tex_docs.push({
                     text: response.text,
                     error: response.error,
@@ -60,7 +103,7 @@ chrome.runtime.onMessage.addListener(
                     current: docs[i].current,
                 });
             }
-            sendResponse({ docs: tex_docs });
+            sendResponse({ docs: tex_docs, blobs: blobs });
         }
         translate();
         return true;
