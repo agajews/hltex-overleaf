@@ -1,5 +1,16 @@
 'use strict';
 
+chrome.extension.isAllowedFileSchemeAccess(function(isAllowedAccess) {
+    if (isAllowedAccess) return; // Great, we've got access
+
+    // alert for a quick demonstration, please create your own user-friendly UI
+    alert('Please allow access to file URLs in the following screen.');
+
+    chrome.tabs.create({
+        url: 'chrome://extensions/?id=' + chrome.runtime.id
+    });
+});
+
 chrome.runtime.onMessage.addListener(
     function(request, sender, sendResponse) {
         async function translate() {

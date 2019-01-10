@@ -224,7 +224,7 @@ interval = setInterval(function() {
 
             if (!e.detail.docs) {
                 // alert('Chrome native messaging raised `' + e.detail.error + '`');
-                endRecompile('Chrome native messaging raised `' + e.detail.error + '`');
+                endRecompile('Chrome native messaging raised `' + e.detail.error.message + '`');
                 return;
             }
             var docs = e.detail.docs;
@@ -355,60 +355,401 @@ interval = setInterval(function() {
             }, 50);
         });
 
-        ace.define("ace/mode/hltex_highlight_rules", ["require", "exports", "module", "ace/lib/oop", "ace/mode/text_highlight_rules"], function(require, exports, module) {
+        ace.define("ace/mode/hltex_highlight_rules", [
+                "require", "exports", "module", "ace/lib/oop",
+                "ace/mode/text_highlight_rules",
+        ], function(require, exports, module) {
             "use strict";
-            var oop = require("../lib/oop")
-            , TextHighlightRules = require("./text_highlight_rules").TextHighlightRules
-            , LatexHighlightRules = function() {
+            var oop = require("../lib/oop");
+            var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
+
+            var PythonHighlightRules = function() {
+                var keywords = (
+                    "and|as|assert|break|class|continue|def|del|elif|else|except|exec|" +
+                    "finally|for|from|global|if|import|in|is|lambda|not|or|pass|print|" +
+                    "raise|return|try|while|with|yield|async|await|nonlocal"
+                );
+
+                var builtinConstants = (
+                    "True|False|None|NotImplemented|Ellipsis|__debug__"
+                );
+
+                var builtinFunctions = (
+                    "abs|divmod|input|open|staticmethod|all|enumerate|int|ord|str|any|" +
+                    "eval|isinstance|pow|sum|basestring|execfile|issubclass|print|super|" +
+                    "binfile|bin|iter|property|tuple|bool|filter|len|range|type|bytearray|" +
+                    "float|list|raw_input|unichr|callable|format|locals|reduce|unicode|" +
+                    "chr|frozenset|long|reload|vars|classmethod|getattr|map|repr|xrange|" +
+                    "cmp|globals|max|reversed|zip|compile|hasattr|memoryview|round|" +
+                    "__import__|complex|hash|min|apply|delattr|help|next|setattr|set|" +
+                    "buffer|dict|hex|object|slice|coerce|dir|id|oct|sorted|intern|" +
+                    "ascii|breakpoint|bytes"
+                );
+
+                //var futureReserved = "";
+                var keywordMapper = this.createKeywordMapper({
+                    "invalid.deprecated": "debugger",
+                    "support.function": builtinFunctions,
+                    "variable.language": "self|cls",
+                    "constant.language": builtinConstants,
+                    "keyword": keywords
+                }, "identifier");
+
+                var strPre = "[uU]?";
+                var strRawPre = "[rR]";
+                var strFormatPre = "[fF]";
+                var strRawFormatPre = "(?:[rR][fF]|[fF][rR])";
+                var decimalInteger = "(?:(?:[1-9]\\d*)|(?:0))";
+                var octInteger = "(?:0[oO]?[0-7]+)";
+                var hexInteger = "(?:0[xX][\\dA-Fa-f]+)";
+                var binInteger = "(?:0[bB][01]+)";
+                var integer = "(?:" + decimalInteger + "|" + octInteger + "|" + hexInteger + "|" + binInteger + ")";
+
+                var exponent = "(?:[eE][+-]?\\d+)";
+                var fraction = "(?:\\.\\d+)";
+                var intPart = "(?:\\d+)";
+                var pointFloat = "(?:(?:" + intPart + "?" + fraction + ")|(?:" + intPart + "\\.))";
+                var exponentFloat = "(?:(?:" + pointFloat + "|" + intPart + ")" + exponent + ")";
+                var floatNumber = "(?:" + exponentFloat + "|" + pointFloat + ")";
+
+                var stringEscape = "\\\\(x[0-9A-Fa-f]{2}|[0-7]{3}|[\\\\abfnrtv'\"]|U[0-9A-Fa-f]{8}|u[0-9A-Fa-f]{4})";
+
                 this.$rules = {
-                    start: [{
-                        token: "comment",
-                        regex: "%.*$"
+                    "start" : [ {
+                        token : "comment",
+                        regex : "#.*$"
                     }, {
-                        token: ["keyword", "lparen", "variable.parameter", "rparen", "lparen", "storage.type", "rparen"],
-                        regex: "(\\\\(?:documentclass|usepackage|input))(?:(\\[)([^\\]]*)(\\]))?({)([^}]*)(})"
-                    }, {  // split preamble from document
-                        token: ["constant.character.escape"],
-                        regex: "(^\\s*===\\s*$)"
+                        token : "string",           // multi line """ string start
+                        regex : strPre + '"{3}',
+                        next : "qqstring3"
                     }, {
-                        token: ["keyword", "lparen", "variable.parameter", "rparen"],
-                        regex: "(\\\\(?:label|v?ref|cite(?:[^{]*)))(?:({)([^}]*)(}))?"
+                        token : "string",           // " string
+                        regex : strPre + '"(?=.)',
+                        next : "qqstring"
                     }, {
-                        token: ["storage.type", "lparen", "variable.parameter", "rparen"],
-                        regex: "(\\\\begin)({)(verbatim)(})",
-                        next: "verbatim"
+                        token : "string",           // multi line ''' string start
+                        regex : strPre + "'{3}",
+                        next : "qstring3"
                     }, {
-                        token: ["storage.type", "lparen", "variable.parameter", "rparen"],
-                        regex: "(\\\\begin)({)(lstlisting)(})",
-                        next: "lstlisting"
-                    }, {
-                        token: ["storage.type", "lparen", "variable.parameter", "rparen"],
-                        regex: "(\\\\(?:begin|end))({)([\\w*]*)(})"
-                    }, {
-                        token: "storage.type",
-                        regex: /\\verb\b\*?/,
-                        next: [{
-                            token: ["keyword.operator", "string", "keyword.operator"],
-                            regex: "(.)(.*?)(\\1|$)|",
-                            next: "start"
-                        }]
-                    }, {
-                        token: "storage.type",
-                        regex: "\\\\[a-zA-Z]+"
-                    }, {
-                        token: "lparen",
-                        regex: "[[({]"
-                    }, {
-                        token: "rparen",
-                        regex: "[\\])}]"
-                    }, {
-                        token: "constant.character.escape",
-                        regex: "\\\\[^a-zA-Z]?"
+                        token : "string",           // ' string
+                        regex : strPre + "'(?=.)",
+                        next : "qstring"
                     }, {
                         token: "string",
-                        regex: "\\${1,2}",
-                        next: "equation"
+                        regex: strRawPre + '"{3}',
+                        next: "rawqqstring3"
+                    }, {
+                        token: "string", 
+                        regex: strRawPre + '"(?=.)',
+                        next: "rawqqstring"
+                    }, {
+                        token: "string",
+                        regex: strRawPre + "'{3}",
+                        next: "rawqstring3"
+                    }, {
+                        token: "string",
+                        regex: strRawPre + "'(?=.)",
+                        next: "rawqstring"
+                    }, {
+                        token: "string",
+                        regex: strFormatPre + '"{3}',
+                        next: "fqqstring3"
+                    }, {
+                        token: "string",
+                        regex: strFormatPre + '"(?=.)',
+                        next: "fqqstring"
+                    }, {
+                        token: "string",
+                        regex: strFormatPre + "'{3}",
+                        next: "fqstring3"
+                    }, {
+                        token: "string",
+                        regex: strFormatPre + "'(?=.)",
+                        next: "fqstring"
+                    },{
+                        token: "string",
+                        regex: strRawFormatPre + '"{3}',
+                        next: "rfqqstring3"
+                    }, {
+                        token: "string",
+                        regex: strRawFormatPre + '"(?=.)',
+                        next: "rfqqstring"
+                    }, {
+                        token: "string",
+                        regex: strRawFormatPre + "'{3}",
+                        next: "rfqstring3"
+                    }, {
+                        token: "string",
+                        regex: strRawFormatPre + "'(?=.)",
+                        next: "rfqstring"
+                    }, {
+                        token: "keyword.operator",
+                        regex: "\\+|\\-|\\*|\\*\\*|\\/|\\/\\/|%|@|<<|>>|&|\\||\\^|~|<|>|<=|=>|==|!=|<>|="
+                    }, {
+                        token: "punctuation",
+                        regex: ",|:|;|\\->|\\+=|\\-=|\\*=|\\/=|\\/\\/=|%=|@=|&=|\\|=|^=|>>=|<<=|\\*\\*="
+                    }, {
+                        token: "paren.lparen",
+                        regex: "[\\[\\(\\{]"
+                    }, {
+                        token: "paren.rparen",
+                        regex: "[\\]\\)\\}]"
+                    }, {
+                        token: "text",
+                        regex: "\\s+"
+                    }, {
+                        include: "constants"
                     }],
+                    "qqstring3": [{
+                        token: "constant.language.escape",
+                        regex: stringEscape
+                    }, {
+                        token: "string", // multi line """ string end
+                        regex: '"{3}',
+                        next: "start"
+                    }, {
+                        defaultToken: "string"
+                    }],
+                    "qstring3": [{
+                        token: "constant.language.escape",
+                        regex: stringEscape
+                    }, {
+                        token: "string",  // multi line ''' string end
+                        regex: "'{3}",
+                        next: "start"
+                    }, {
+                        defaultToken: "string"
+                    }],
+                    "qqstring": [{
+                        token: "constant.language.escape",
+                        regex: stringEscape
+                    }, {
+                        token: "string",
+                        regex: "\\\\$",
+                        next: "qqstring"
+                    }, {
+                        token: "string",
+                        regex: '"|$',
+                        next: "start"
+                    }, {
+                        defaultToken: "string"
+                    }],
+                    "qstring": [{
+                        token: "constant.language.escape",
+                        regex: stringEscape
+                    }, {
+                        token: "string",
+                        regex: "\\\\$",
+                        next: "qstring"
+                    }, {
+                        token: "string",
+                        regex: "'|$",
+                        next: "start"
+                    }, {
+                        defaultToken: "string"
+                    }],
+                    "rawqqstring3": [{
+                        token: "string", // multi line """ string end
+                        regex: '"{3}',
+                        next: "start"
+                    }, {
+                        defaultToken: "string"
+                    }],
+                    "rawqstring3": [{
+                        token: "string",  // multi line ''' string end
+                        regex: "'{3}",
+                        next: "start"
+                    }, {
+                        defaultToken: "string"
+                    }],
+                    "rawqqstring": [{
+                        token: "string",
+                        regex: "\\\\$",
+                        next: "rawqqstring"
+                    }, {
+                        token: "string",
+                        regex: '"|$',
+                        next: "start"
+                    }, {
+                        defaultToken: "string"
+                    }],
+                    "rawqstring": [{
+                        token: "string",
+                        regex: "\\\\$",
+                        next: "rawqstring"
+                    }, {
+                        token: "string",
+                        regex: "'|$",
+                        next: "start"
+                    }, {
+                        defaultToken: "string"
+                    }],
+                    "fqqstring3": [{
+                        token: "constant.language.escape",
+                        regex: stringEscape
+                    }, {
+                        token: "string", // multi line """ string end
+                        regex: '"{3}',
+                        next: "start"
+                    }, {
+                        token: "paren.lparen",
+                        regex: "{",
+                        push: "fqstringParRules"
+                    }, {
+                        defaultToken: "string"
+                    }],
+                    "fqstring3": [{
+                        token: "constant.language.escape",
+                        regex: stringEscape
+                    }, {
+                        token: "string",  // multi line ''' string end
+                        regex: "'{3}",
+                        next: "start"
+                    }, {
+                        token: "paren.lparen",
+                        regex: "{",
+                        push: "fqstringParRules"
+                    }, {
+                        defaultToken: "string"
+                    }],
+                    "fqqstring": [{
+                        token: "constant.language.escape",
+                        regex: stringEscape
+                    }, {
+                        token: "string",
+                        regex: "\\\\$",
+                        next: "fqqstring"
+                    }, {
+                        token: "string",
+                        regex: '"|$',
+                        next: "start"
+                    }, {
+                        token: "paren.lparen",
+                        regex: "{",
+                        push: "fqstringParRules"
+                    }, {
+                        defaultToken: "string"
+                    }],
+                    "fqstring": [{
+                        token: "constant.language.escape",
+                        regex: stringEscape
+                    }, {
+                        token: "string",
+                        regex: "'|$",
+                        next: "start"
+                    }, {
+                        token: "paren.lparen",
+                        regex: "{",
+                        push: "fqstringParRules"
+                    }, {
+                        defaultToken: "string"
+                    }],
+                    "rfqqstring3": [{
+                        token: "string", // multi line """ string end
+                        regex: '"{3}',
+                        next: "start"
+                    }, {
+                        token: "paren.lparen",
+                        regex: "{",
+                        push: "fqstringParRules"
+                    }, {
+                        defaultToken: "string"
+                    }],
+                    "rfqstring3": [{
+                        token: "string",  // multi line ''' string end
+                        regex: "'{3}",
+                        next: "start"
+                    }, {
+                        token: "paren.lparen",
+                        regex: "{",
+                        push: "fqstringParRules"
+                    }, {
+                        defaultToken: "string"
+                    }],
+                    "rfqqstring": [{
+                        token: "string",
+                        regex: "\\\\$",
+                        next: "rfqqstring"
+                    }, {
+                        token: "string",
+                        regex: '"|$',
+                        next: "start"
+                    }, {
+                        token: "paren.lparen",
+                        regex: "{",
+                        push: "fqstringParRules"
+                    }, {
+                        defaultToken: "string"
+                    }],
+                    "rfqstring": [{
+                        token: "string",
+                        regex: "'|$",
+                        next: "start"
+                    }, {
+                        token: "paren.lparen",
+                        regex: "{",
+                        push: "fqstringParRules"
+                    }, {
+                        defaultToken: "string"
+                    }],
+                    "fqstringParRules": [{//TODO: nested {}
+                        token: "paren.lparen",
+                        regex: "[\\[\\(]"
+                    }, {
+                        token: "paren.rparen",
+                        regex: "[\\]\\)]"
+                    }, {
+                        token: "string",
+                        regex: "\\s+"
+                    }, {
+                        token: "string",
+                        regex: "'(.)*'"
+                    }, {
+                        token: "string",
+                        regex: '"(.)*"'
+                    }, {
+                        token: "function.support",
+                        regex: "(!s|!r|!a)"
+                    }, {
+                        include: "constants"
+                    },{
+                        token: 'paren.rparen',
+                        regex: "}",
+                        next: 'pop'
+                    },{
+                        token: 'paren.lparen',
+                        regex: "{",
+                        push: "fqstringParRules"
+                    }],
+                    "constants": [{
+                        token: "constant.numeric", // imaginary
+                        regex: "(?:" + floatNumber + "|\\d+)[jJ]\\b"
+                    }, {
+                        token: "constant.numeric", // float
+                        regex: floatNumber
+                    }, {
+                        token: "constant.numeric", // long integer
+                        regex: integer + "[lL]\\b"
+                    }, {
+                        token: "constant.numeric", // integer
+                        regex: integer + "\\b"
+                    }, {
+                        token: ["punctuation", "function.support"],// method
+                        regex: "(\\.)([a-zA-Z_]+)\\b"
+                    }, {
+                        token: keywordMapper,
+                        regex: "[a-zA-Z_$][a-zA-Z0-9_$]*\\b"
+                    }]
+                };
+                this.normalizeRules();
+            };
+
+            oop.inherits(PythonHighlightRules, TextHighlightRules);
+
+
+            var LatexHighlightRules = function() {
+                this.$rules = {
+                    start: [],
                     equation: [{
                         token: "comment",
                         regex: "%.*$"
@@ -440,11 +781,93 @@ interval = setInterval(function() {
                     }, {
                         defaultToken: "text"
                     }]
-                },
-                this.normalizeRules()
+                };
+
+                for (var i = 0; i < 24; i++) {
+                    var indent = '    '.repeat(i);
+                    this.$rules.start.push({
+                        token: ["keyword", "text"],
+                        regex: "(^" + indent + "\\\\pysplice[\\s]*)(:[\\s]*)",
+                        next: "python-" + i + "-start",
+                    });
+                    this.embedRules(PythonHighlightRules, 'python-' + i + '-', [{
+                        token: 'end',
+                        regex: '^' + indent + '[^\\s]',
+                        next: 'start',
+                    }]);
+                }
+
+                // this.$rules.start.push({
+                //     token: ["keyword"],
+                //     regex: "(^\\\\pysplice(\\s)*:(\\s)*)",
+                //     next: "python-0-start",
+                // })
+
+                this.$rules.start = this.$rules.start.concat([{
+                    token: "comment",
+                    regex: "%.*$",
+                    // next: "python-4-start"
+                }, {
+                    token: ["keyword", "lparen", "variable.parameter", "rparen", "lparen", "storage.type", "rparen"],
+                    regex: "(\\\\(?:documentclass|usepackage|input))(?:(\\[)([^\\]]*)(\\]))?({)([^}]*)(})"
+                }, {  // split preamble from document
+                    token: ["constant.character.escape"],
+                    regex: "(^\\s*===\\s*$)"
+                }, {
+                    token: ["keyword", "lparen", "variable.parameter", "rparen"],
+                    regex: "(\\\\(?:label|v?ref|cite(?:[^{]*)))(?:({)([^}]*)(}))?"
+                }, {
+                    token: ["storage.type", "lparen", "variable.parameter", "rparen"],
+                    regex: "(\\\\begin)({)(verbatim)(})",
+                    next: "verbatim"
+                }, {
+                    token: ["storage.type", "lparen", "variable.parameter", "rparen"],
+                    regex: "(\\\\begin)({)(lstlisting)(})",
+                    next: "lstlisting"
+                }, {
+                    token: ["storage.type", "lparen", "variable.parameter", "rparen"],
+                    regex: "(\\\\(?:begin|end))({)([\\w*]*)(})"
+                }, {
+                    token: "storage.type",
+                    regex: /\\verb\b\*?/,
+                    next: [{
+                        token: ["keyword.operator", "string", "keyword.operator"],
+                        regex: "(.)(.*?)(\\1|$)|",
+                        next: "start"
+                    }]
+                }, {
+                    token: "storage.type",
+                    regex: "\\\\[a-zA-Z]+"
+                }, {
+                    token: "lparen",
+                    regex: "[[({]"
+                }, {
+                    token: "rparen",
+                    regex: "[\\])}]"
+                }, {
+                    token: "constant.character.escape",
+                    regex: "\\\\[^a-zA-Z]?"
+                }, {
+                    token: "string",
+                    regex: "\\${1,2}",
+                    next: "equation"
+                }]);
+
+                console.log(this);
+                console.log(this.$rules.start);
+
+                this.normalizeRules();
+
+                // this.embedRules(PythonHighlightRules, 'python-0-', [{
+                //     token: 'end',
+                //     regex: '^[^\\s]',
+                //     next: 'start',
+                // }]);
+
             };
-            oop.inherits(LatexHighlightRules, TextHighlightRules),
-            exports.LatexHighlightRules = LatexHighlightRules
+
+            oop.inherits(LatexHighlightRules, TextHighlightRules);
+            exports.LatexHighlightRules = LatexHighlightRules;
         });
 
         // ace.define("ace/mode/folding/hltex", ["require", "exports", "module", "ace/lib/oop", "ace/mode/folding/fold_mode", "ace/range", "ace/token_iterator"], function(require, exports, module) {
