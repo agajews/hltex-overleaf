@@ -51,6 +51,7 @@ interval = setInterval(function() {
             }
             var hltex_docs = [];
             var tex_docs = [];
+            var file_env = [];
             var noCurrent = false;
             for (var i = 0; i < docs.length; i++) {
                 var current = docs[i].doc.id == window._ide.$scope.editor.open_doc_id;
@@ -75,7 +76,7 @@ interval = setInterval(function() {
                             });
                         } catch (err) {
                             console.log(err);
-                            endRecompile(true);
+                            endRecompile('Failed to read doc ' + docs[i].path);
                             return;
                         }
                         text = docLines.join('\n');
@@ -92,11 +93,33 @@ interval = setInterval(function() {
                         path: docs[i].path,
                         id: docs[i].doc.id,
                     });
+                } else if (!name.endsWith('.bib')) {  // TODO: any other file extensions to ignore?
+                    try {
+                        var docLines = await new Promise((resolve, reject) => {
+                            idecopy.socket.emit('joinDoc', docs[i].doc.id, { encodeRanges: true }, function (error, docLines, version, updates, ranges) {
+                                if (error) {
+                                    reject(error);
+                                    return;
+                                }
+                                resolve(docLines);
+                            });
+                        });
+                    } catch (err) {
+                        console.log(err);
+                        endRecompile('Failed to read doc ' + docs[i].path);
+                        return;
+                    }
+                    text = docLines.join('\n');
+                    file_env.push({
+                        path: docs[i].path,
+                        text: text,
+                    })
                 }
             }
 
             console.log('Hltex docs: ', hltex_docs);
             console.log('Tex docs: ', tex_docs);
+            console.log('File env:', file_env);
 
             // why doesn't javascript have hashmaps
             for (var i = 0; i < hltex_docs.length; i++) {
@@ -184,7 +207,7 @@ interval = setInterval(function() {
                 }
             }
 
-            var e = new CustomEvent('readytoparse', { detail: hltex_docs });
+            var e = new CustomEvent('readytoparse', { detail: { docs: hltex_docs, file_env: file_env } });
             document.dispatchEvent(e);
         }
 

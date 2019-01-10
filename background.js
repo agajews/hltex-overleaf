@@ -49,12 +49,13 @@ chrome.runtime.onMessage.addListener(
         async function translate() {
             console.log('Received request ', request);
             var docs = request.docs;
+            var file_env = request.file_env;
             console.log('Received docs ', docs);
             var tex_docs = [];
             var blobs = [];
             for (var i = 0; i < docs.length; i++) {
                 var response = await new Promise(resolve => {
-                    chrome.runtime.sendNativeMessage('com.hltex.overleaf', docs[i], resolve);
+                    chrome.runtime.sendNativeMessage('com.hltex.overleaf', { doc: docs[i], file_env: file_env }, resolve);
                 });
 
                 console.log('Received response', response);

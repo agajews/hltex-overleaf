@@ -15,11 +15,18 @@ while 1:
     #Unpack the exact length of the message from the app, and read the message.
     text_length = struct.unpack('i', text_length_bytes)[0]
 
-    document = sys.stdin.buffer.read(text_length)
-    document = json.loads(document.decode('utf-8'))['text']
-    sys.stderr.write(document + '\n')
+    request = sys.stdin.buffer.read(text_length)
+    request = json.loads(request.decode('utf-8'))
+    document = request['doc']['text']
+    file_env = request['file_env']
+    sys.stderr.write('Document: ' + document + '\n')
+    sys.stderr.write('File env: ' + str(file_env) + '\n')
 
-    translator = Translator(document)
+    file_dict = {}
+    for f in file_env:
+        file_dict[f['path']] = f['text']
+
+    translator = Translator(document, file_dict)
     try:
         res = translator.translate_internal()
         sys.stderr.write('Translator result: ' + str(res))
