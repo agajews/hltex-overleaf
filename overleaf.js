@@ -185,6 +185,12 @@ interval = setInterval(function() {
 
             console.log('Received response', e.detail);
 
+            if (!e.detail) {
+                alert('Chrome native messaging failed');
+                endRecompile(true);
+                return;
+            }
+
             if (!e.detail.docs) {
                 alert('Chrome native messaging raised `' + e.detail.error + '`');
                 endRecompile(true);
