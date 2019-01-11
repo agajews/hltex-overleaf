@@ -244,10 +244,16 @@ interval = setInterval(function() {
                 formData.append("qqfile", blob, filename);
                 var request = new XMLHttpRequest();
                 request.open("POST", window.project_id + '/upload?folder_id=' + window._ide.$scope.rootFolder.id + '&_csrf=' + window.csrfToken)
-                request.onload = function(a) {
-                    console.log(a);
-                }
-                request.send(formData);
+                var filePromise = new Promise(resolve => {
+                    request.onload = function(a) {
+                        console.log('Request gave', a);
+                        resolve();
+                    }
+                    request.send(formData);
+                });
+                console.log('Awaiting promise...');
+                await filePromise;
+                console.log('Promise finished');
             }
 
             for (var i = 0; i < docs.length; i++) {
