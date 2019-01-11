@@ -357,6 +357,10 @@ interval = setInterval(function() {
             }
         }
 
+        var toolbar = document.getElementsByClassName('toolbar-editor')[0];
+        var tog = toolbar.getElementsByClassName('toggle-wrapper')[0];
+        toolbar.removeChild(tog);
+
         scopes[editor_scope].onSave = _ide.$scope.recompile
 
         _ide.$scope.$on('doc:opened', function() {
