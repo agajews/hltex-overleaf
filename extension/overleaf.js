@@ -347,9 +347,13 @@ interval = setInterval(function() {
         var editor_scope = null;
 
         for (var i = 0; i < scopes.length; i++) {
-                if (scopes[i].onSave) {
-                        console.log(i);
+            if (scopes[i].onSave) {
+                console.log(i);
                 editor_scope = i;
+            }
+            if (scopes[i].autocompile_enabled) {
+                console.log('Disabling autocompile');
+                scopes[i].autocompile_enabled = false;
             }
         }
 
