@@ -13,6 +13,12 @@ function endRecompile(err) {
     document.getElementsByClassName('btn-recompile')[0].removeAttribute('disabled');
 }
 
+function alertErrors(annotation) {
+    setTimeout(function() {
+        alert('There were HLTeX compilation errors at line ' + (annotation[0].row + 1) + ': ' + annotation[0].text);
+    }, 100);
+}
+
 function strToBlob(str, type) {
     var i, l, d, array;
     d = str;
@@ -33,6 +39,7 @@ interval = setInterval(function() {
         console.log('Setting compiler');
         oldRecompile = window._ide.$scope.recompile;
         window.oldRecompile = oldRecompile;
+        window.annotations = {};
         // toparse = document.getElementById('toparse');
         window._ide.$scope.recompile = async function() {
             if (window.recompiling || _ide.$scope.pdf.compiling) {  // poor man's mutex
@@ -84,7 +91,7 @@ interval = setInterval(function() {
                     hltex_docs.push({
                         text: text,
                         name: name,
-                        // id: docs[i].doc.id,
+                        id: docs[i].doc.id,
                         path: docs[i].path,
                         current: current,
                     });
@@ -256,11 +263,11 @@ interval = setInterval(function() {
                 console.log('Promise finished');
             }
 
+            _ide.$scope.editor.sharejs_doc.ace.session.clearAnnotations();
+            window.annotations = {};
+
             for (var i = 0; i < docs.length; i++) {
                 if (docs[i].text) {
-                    if (docs[i].current) {
-                        _ide.$scope.editor.sharejs_doc.ace.session.clearAnnotations();
-                    }
                     try {
                         await new Promise((resolve, reject) => {
                             idecopy.socket.emit('joinDoc', docs[i].id, { encodeRanges: true }, function (error, docLines, version, updates, ranges) {
@@ -288,8 +295,8 @@ interval = setInterval(function() {
                         return;
                     }
 
-                } else if (docs[i].current) {
-                    _ide.$scope.editor.sharejs_doc.ace.session.setAnnotations([{
+                } else {
+                    var annotation = [{
                         row: docs[i].line,
                         column: 0,
                         start_row: docs[i].line,
@@ -299,7 +306,28 @@ interval = setInterval(function() {
                         suppressed: false,
                         type: "error",
                         text: docs[i].error,
-                    }]);
+                    }];
+                    window.annotations[docs[i].hlid] = annotation;
+                    if (docs[i].current) {
+                        _ide.$scope.editor.sharejs_doc.ace.session.setAnnotations(annotation);
+                        alertErrors(annotation);
+                    } else {
+                        var err_doc = null;
+                        var all_docs = _ide.$scope.docs;
+                        for (var k = 0; k < all_docs.length; k++) {
+                            if (all_docs[k].doc.id == docs[i].hlid) {
+                                err_doc = all_docs[k].doc;
+                            }
+                        }
+                        if (!err_doc) {
+                            endRecompile('Failed to annotate errors');
+                            return;
+                        }
+                        _ide.$scope.$apply(function() {
+                            console.log('Selecting', docs[i].hlid);
+                            _ide.editorManager.openDoc(err_doc);
+                        });
+                    }
                     endRecompile();
                     return;
                 }
@@ -372,6 +400,13 @@ interval = setInterval(function() {
                 setTimeout(function() {
                     if (_ide.$scope.editor.open_doc_name.endsWith('.hltex')) {
                         _ide.$scope.editor.sharejs_doc.ace.session.setMode('ace/mode/hltex');
+                        var doc_id = _ide.$scope.editor.open_doc_id;
+                        if (window.annotations[doc_id]) {
+                            console.log('Setting annotations');
+                            var annotation = window.annotations[doc_id];
+                            _ide.$scope.editor.sharejs_doc.ace.session.setAnnotations(annotation);
+                            alertErrors(annotation);
+                        }
                     }
                 }, 50);
             });

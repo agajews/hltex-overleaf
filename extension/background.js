@@ -68,6 +68,7 @@ chrome.runtime.onMessage.addListener(
                     line: response.line,
                     path: docs[i].path,
                     id: docs[i].tex_id,
+                    hlid: docs[i].id,
                     current: docs[i].current,
                 });
             }
