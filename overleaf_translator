@@ -6,8 +6,8 @@ import sys
 import traceback
 
 from hltex.errors import TranslationError
-from hltex.newtranslator import parse_block
 from hltex.state import State
+from hltex.translator import parse_block
 
 while 1:
     # The first four bytes from the app state the rest of the message's length.
@@ -31,7 +31,10 @@ while 1:
     try:
         state = State(document, file_env=file_dict)
         output = parse_block(state, preamble=True)
-        res = {"text": output, "error": None, "line": None, "files": []}
+        files = []
+        for pybox in state.pyboxes.values():
+            files += pybox.fetch_generated_files()
+        res = {"text": output, "error": None, "line": None, "files": files}
         sys.stderr.write("Translator result: " + str(res))
     except TranslationError as e:
         res = {
@@ -40,7 +43,7 @@ while 1:
             "line": state.get_line(),
             "files": [],
         }
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-except
         traceback.print_exc()
         res = {
             "text": None,
