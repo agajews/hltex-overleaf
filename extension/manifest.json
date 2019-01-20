@@ -1,6 +1,6 @@
 {
     "name": "HLTeX Overleaf",
-    "version": "0.1.10",
+    "version": "0.1.11",
     "description": "Overleaf Integration!",
     "permissions": ["webRequest", "webRequestBlocking", "*://*.overleaf.com/", "nativeMessaging", "file://*"],
     "background": {
